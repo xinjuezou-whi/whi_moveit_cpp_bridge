@@ -7,6 +7,7 @@ Features:
 
 Dependencies:
 - whi_interfaces::WhiTcpPose
+- whi_interfaces::WhiSrvTcpPos
 - xxx
 
 Written by Xinjue Zou, xinjue.zou@outlook.com
@@ -20,6 +21,7 @@ Changelog:
 ******************************************************************/
 #pragma once
 #include "whi_interfaces/WhiTcpPose.h"
+#include "whi_interfaces/WhiSrvTcpPose.h"
 
 #include <ros/ros.h>
 #include <moveit/moveit_cpp/moveit_cpp.h>
@@ -37,7 +39,9 @@ namespace whi_moveit_cpp_bridge
 
     protected:
         void init();
+        bool execute(const std::string& PoseGroup, const geometry_msgs::Pose& Pose);
         void callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg);
+        bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req, whi_interfaces::WhiSrvTcpPose::Response& Res);
 
     protected:
         std::shared_ptr<ros::NodeHandle> node_handle_{ nullptr };
@@ -46,5 +50,6 @@ namespace whi_moveit_cpp_bridge
         moveit::core::RobotModelConstPtr robot_model_{ nullptr };
         const moveit::core::JointModelGroup* joint_model_group_{ nullptr };
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
+        std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
 	};
 } // namespace whi_moveit_cpp_bridge
