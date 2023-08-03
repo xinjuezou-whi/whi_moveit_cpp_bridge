@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- argument -->
+
+  <!-- params -->
+  <rosparam file="$(find whi_moveit_cpp_bridge)/config/config.yaml" command="load" subst_value="true"/>
+
+  <!-- hardware interface -->
+  <node name="whi_moveit_cpp_bridge" pkg="whi_moveit_cpp_bridge" type="whi_moveit_cpp_bridge_node" output="screen"/>
+</launch>
