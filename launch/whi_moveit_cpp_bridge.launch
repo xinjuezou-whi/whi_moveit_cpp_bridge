@@ -2,12 +2,12 @@
 <launch>
   <!-- argument -->
   <!-- urdf and srdf file -->
-  <arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_L1_combined_diff.urdf.xacro"/>
-  <arg name="srdf_file" default="$(find chin_crb7_moveit_config)/config/chin_arm_combined.srdf"/>
-  <arg name="base_link" default="base_link"/>
-  <!--<arg name="urdf_file" default="$(find chin_crb7_description)/urdf/chin_crb7.urdf.xacro"/>
+  <arg name="urdf_file" default="$(find chin_crb7_description)/urdf/chin_crb7.urdf.xacro"/>
   <arg name="srdf_file" default="$(find chin_crb7_moveit_config)/config/chin_arm.srdf"/>
-  <arg name="base_link" default="chin_link_0"/>-->
+  <arg name="base_link" default="chin_link_0"/>
+  <!--<arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_L1_combined_diff.urdf.xacro"/>
+  <arg name="srdf_file" default="$(find chin_crb7_moveit_config)/config/chin_arm_combined.srdf"/>
+  <arg name="base_link" default="base_link"/>-->
 
   <!-- params -->
   <rosparam file="$(find whi_moveit_cpp_bridge)/config/config.yaml" command="load" subst_value="true"/>
@@ -20,7 +20,8 @@
 
   <!-- Trajectory execution  -->
   <include ns="whi_moveit_cpp_bridge" file="$(find chin_crb7_moveit_config)/launch/trajectory_execution.launch.xml">
-    <arg name="moveit_controller_manager" value="chin_arm"/>
+    <arg name="moveit_controller_manager" value="fake"/>
+    <!--<arg name="moveit_controller_manager" value="chin_arm"/>-->
   </include>
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
