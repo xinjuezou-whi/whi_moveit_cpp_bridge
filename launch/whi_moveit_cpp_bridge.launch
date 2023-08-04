@@ -20,7 +20,7 @@
 
   <!-- Trajectory execution  -->
   <include ns="whi_moveit_cpp_bridge" file="$(find chin_crb7_moveit_config)/launch/trajectory_execution.launch.xml">
-    <arg name="moveit_controller_manager" value="fake"/>
+    <arg name="moveit_controller_manager" value="chin_arm"/>
   </include>
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
