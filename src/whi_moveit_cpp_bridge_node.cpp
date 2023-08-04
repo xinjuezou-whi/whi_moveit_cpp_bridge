@@ -35,13 +35,13 @@ void signalHandler(int Signal)
 int main(int argc, char** argv)
 {
 	/// node version and copyright announcement
-	std::cout << "\nWHI MoveItCpp bridge VERSION 00.01.2" << std::endl;
+	std::cout << "\nWHI MoveItCpp bridge VERSION 00.02" << std::endl;
 	std::cout << "Copyright © 2023-2024 Wheel Hub Intelligent Co.,Ltd. All rights reserved\n" << std::endl;
 
 	/// ros infrastructure
     const std::string nodeName("whi_moveit_cpp_bridge"); 
 	ros::init(argc, argv, nodeName);
-	auto nodeHandle = std::make_shared<ros::NodeHandle>();
+	auto nodeHandle = std::make_shared<ros::NodeHandle>(nodeName);
 
 	/// node logic
 	auto instance = std::make_unique<whi_moveit_cpp_bridge::MoveItCppBridge>(nodeHandle);
