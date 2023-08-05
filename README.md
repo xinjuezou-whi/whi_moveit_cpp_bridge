@@ -1,7 +1,7 @@
 # whi_moveit_cpp_bridge
 Bridge the MoveIt planning and execution with the MoveItCpp interface offering both message and service interfaces
 
-![moveitcpp_bridge](https://github.com/xinjuezou-whi/whi_moveit_cpp_bridge/assets/72239958/3aa6818e-92e3-4484-b13c-592936d2a185)
+![moveitcpp_bridge](https://github.com/xinjuezou-whi/whi_moveit_cpp_bridge/assets/72239958/29b0b522-7429-4401-9c42-54f7970dd4b3)
 
 ## Dependency
 ```
