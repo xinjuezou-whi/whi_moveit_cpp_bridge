@@ -1,5 +1,5 @@
 # whi_moveit_cpp_bridge
-Bridge the MoveIt planning and execution with the MoveItCpp interface. It offers both message and service interfaces
+Bridge the MoveIt planning and execution with the MoveItCpp interface offering both message and service interfaces
 
 ## Dependency
 ```
