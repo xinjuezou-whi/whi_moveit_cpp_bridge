@@ -28,6 +28,8 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::init()
     {
+        tf_listener_ = std::make_unique<tf2_ros::TransformListener>(buffer_);
+
         // params
         std::string planningGroup;
         node_handle_->param("whi_moveit_cpp_bridge/planning_group", planningGroup, std::string("chin_arm"));
@@ -58,12 +60,26 @@ namespace whi_moveit_cpp_bridge
             node_handle_->advertiseService("tcp_pose", &MoveItCppBridge::onServiceTcpPose, this));
     }
 
-    bool MoveItCppBridge::execute(const std::string& PoseGroup, const geometry_msgs::Pose& Pose)
+    bool MoveItCppBridge::execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose)
     {
         if (PoseGroup.empty())
         {
             auto state = *(moveit_cpp_->getCurrentState());
-            state.setFromIK(joint_model_group_, Pose);
+
+            std::string armRoot = robot_model_->getRootLinkName();
+            if (Pose.header.frame_id == armRoot || Pose.header.frame_id == "world")
+            {
+                state.setFromIK(joint_model_group_, Pose.pose);
+            }
+            else
+            {
+                geometry_msgs::PoseStamped transformedPose;
+                if (trans2TargetFrame(armRoot, Pose, transformedPose))
+                {
+                    state.setFromIK(joint_model_group_, transformedPose.pose);
+                }                
+            }
+
             planning_components_->setStartState(state);
         }
         else
@@ -83,14 +99,29 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg)
     {
-        execute(Msg->pose_group, Msg->tcp_pose.pose);
+        execute(Msg->pose_group, Msg->tcp_pose);
     }
 
     bool MoveItCppBridge::onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
         whi_interfaces::WhiSrvTcpPose::Response& Res)
     {
-        Res.result = execute(Req.pose_group, Req.tcp_pose.pose);
+        Res.result = execute(Req.pose_group, Req.tcp_pose);
 
         return Res.result;
+    }
+
+    bool MoveItCppBridge::trans2TargetFrame(const std::string& DstFrame,
+        const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut)
+    {
+        try
+        {
+            PoseOut = buffer_.transform(PoseIn, DstFrame, ros::Duration(0.0));
+            return true;
+        }
+        catch (tf2::TransformException &e)
+        {
+            ROS_ERROR("%s", e.what());
+            return false;
+        }
     }
 } // namespace whi_moveit_cpp_bridge

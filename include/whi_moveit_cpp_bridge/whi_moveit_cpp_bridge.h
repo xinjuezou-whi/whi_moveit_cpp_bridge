@@ -26,6 +26,9 @@ Changelog:
 #include <ros/ros.h>
 #include <moveit/moveit_cpp/moveit_cpp.h>
 #include <moveit/moveit_cpp/planning_component.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <memory>
 
@@ -39,9 +42,12 @@ namespace whi_moveit_cpp_bridge
 
     protected:
         void init();
-        bool execute(const std::string& PoseGroup, const geometry_msgs::Pose& Pose);
+        bool execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose);
         void callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg);
-        bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req, whi_interfaces::WhiSrvTcpPose::Response& Res);
+        bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
+            whi_interfaces::WhiSrvTcpPose::Response& Res);
+        bool trans2TargetFrame(const std::string& DstFrame,
+            const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut);
 
     protected:
         std::shared_ptr<ros::NodeHandle> node_handle_{ nullptr };
@@ -51,5 +57,7 @@ namespace whi_moveit_cpp_bridge
         const moveit::core::JointModelGroup* joint_model_group_{ nullptr };
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
+        tf2_ros::Buffer buffer_;
+        std::unique_ptr<tf2_ros::TransformListener> tf_listener_{ nullptr };
 	};
 } // namespace whi_moveit_cpp_bridge
