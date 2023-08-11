@@ -80,7 +80,7 @@ namespace whi_moveit_cpp_bridge
                 }                
             }
 
-            planning_components_->setStartState(state);
+            planning_components_->setGoal(state);
         }
         else
         {
@@ -89,10 +89,14 @@ namespace whi_moveit_cpp_bridge
         auto solution = planning_components_->plan();
         if (solution)
         {
+#ifdef DEBUG
+            std::cout << "trajectory waypoints count " << solution.trajectory_->getWayPointCount() << std::endl;
+#endif
             return planning_components_->execute();
         }
         else
         {
+            ROS_WARN_STREAM("failed to find solution");
             return false;
         }
     }
