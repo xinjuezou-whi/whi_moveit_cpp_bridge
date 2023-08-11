@@ -67,7 +67,7 @@ namespace whi_moveit_cpp_bridge
             auto state = *(moveit_cpp_->getCurrentState());
 
             std::string armRoot = robot_model_->getRootLinkName();
-            if (Pose.header.frame_id == armRoot || Pose.header.frame_id == "world")
+            if (Pose.header.frame_id == armRoot || Pose.header.frame_id == "world" || Pose.header.frame_id.empty())
             {
                 state.setFromIK(joint_model_group_, Pose.pose);
             }
