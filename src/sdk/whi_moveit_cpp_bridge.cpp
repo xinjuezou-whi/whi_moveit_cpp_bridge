@@ -61,8 +61,10 @@ namespace whi_moveit_cpp_bridge
 			    std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
         }
         // providing the tcp pose service
+        std::string service;
+        node_handle_->param("tcp_pose_service", service, std::string("tcp_pose"));
         target_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService("tcp_pose", &MoveItCppBridge::onServiceTcpPose, this));
+            node_handle_->advertiseService(service, &MoveItCppBridge::onServiceTcpPose, this));
     }
 
     bool MoveItCppBridge::execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose)
