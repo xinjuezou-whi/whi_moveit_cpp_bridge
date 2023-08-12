@@ -18,6 +18,8 @@ All text above must be included in any redistribution.
 ******************************************************************/
 #include "whi_moveit_cpp_bridge/whi_moveit_cpp_bridge.h"
 
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 namespace whi_moveit_cpp_bridge
 {
     MoveItCppBridge::MoveItCppBridge(std::shared_ptr<ros::NodeHandle>& NodeHandle)
@@ -28,8 +30,6 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::init()
     {
-        tf_listener_ = std::make_unique<tf2_ros::TransformListener>(buffer_);
-
         // params
         std::string planningGroup;
         node_handle_->param("planning_group", planningGroup, std::string("whi_arm"));
@@ -129,7 +129,7 @@ namespace whi_moveit_cpp_bridge
     {
         try
         {
-            PoseOut = buffer_.transform(PoseIn, DstFrame, ros::Duration(0.0));
+            PoseOut = moveit_cpp_->getTFBuffer()->transform(PoseIn, DstFrame, ros::Duration(0.0));
             return true;
         }
         catch (tf2::TransformException &e)
