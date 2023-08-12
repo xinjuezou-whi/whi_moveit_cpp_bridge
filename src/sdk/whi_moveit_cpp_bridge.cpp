@@ -32,7 +32,7 @@ namespace whi_moveit_cpp_bridge
 
         // params
         std::string planningGroup;
-        node_handle_->param("whi_moveit_cpp_bridge/planning_group", planningGroup, std::string("chin_arm"));
+        node_handle_->param("planning_group", planningGroup, std::string("whi_arm"));
 
         try
         {
@@ -52,9 +52,14 @@ namespace whi_moveit_cpp_bridge
         }
 
         // subscriber
-        target_sub_ = std::make_unique<ros::Subscriber>(
-			node_handle_->subscribe<whi_interfaces::WhiTcpPose>("tcp_pose", 10,
-			std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
+        std::string topic;
+        node_handle_->param("tcp_pose_topic", topic, std::string(""));
+        if (!topic.empty())
+        {
+            target_sub_ = std::make_unique<ros::Subscriber>(
+			    node_handle_->subscribe<whi_interfaces::WhiTcpPose>(topic, 10,
+			    std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
+        }
         // providing the tcp pose service
         target_srv_ = std::make_unique<ros::ServiceServer>(
             node_handle_->advertiseService("tcp_pose", &MoveItCppBridge::onServiceTcpPose, this));

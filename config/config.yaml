@@ -1,2 +1,3 @@
 whi_moveit_cpp_bridge:
   planning_group: chin_arm
+  tcp_pose_topic: tcp_pose
