@@ -43,6 +43,12 @@ namespace whi_moveit_cpp_bridge
                 planning_components_ = std::make_shared<moveit_cpp::PlanningComponent>(planningGroup, moveit_cpp_);
                 robot_model_ = moveit_cpp_->getRobotModel();
                 joint_model_group_ = robot_model_->getJointModelGroup(planningGroup);
+                // getting current state of robot from environment
+                if (!moveit_cpp_->getPlanningSceneMonitor()->requestPlanningSceneState())
+                {
+                    ROS_ERROR_STREAM("failed to get planning scene");
+                    return;
+                }
             }
         }
         catch (const std::exception& e)
@@ -62,9 +68,12 @@ namespace whi_moveit_cpp_bridge
 
     bool MoveItCppBridge::execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose)
     {
+        auto startState = moveit_cpp_->getCurrentState(2.0);
+        planning_components_->setStartState(*startState);
+        
         if (PoseGroup.empty())
         {
-            auto state = *(moveit_cpp_->getCurrentState());
+            auto state = *startState;
 
             std::string armRoot = robot_model_->getRootLinkName();
             if (Pose.header.frame_id == armRoot || Pose.header.frame_id == "world" || Pose.header.frame_id.empty())
@@ -89,7 +98,7 @@ namespace whi_moveit_cpp_bridge
         auto solution = planning_components_->plan();
         if (solution)
         {
-#ifdef DEBUG
+#ifndef DEBUG
             std::cout << "trajectory waypoints count " << solution.trajectory_->getWayPointCount() << std::endl;
 #endif
             return planning_components_->execute();
@@ -124,7 +133,7 @@ namespace whi_moveit_cpp_bridge
         }
         catch (tf2::TransformException &e)
         {
-            ROS_ERROR("%s", e.what());
+            ROS_ERROR_STREAM(e.what());
             return false;
         }
     }
