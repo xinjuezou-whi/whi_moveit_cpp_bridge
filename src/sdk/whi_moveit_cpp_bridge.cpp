@@ -43,12 +43,6 @@ namespace whi_moveit_cpp_bridge
                 planning_components_ = std::make_shared<moveit_cpp::PlanningComponent>(planningGroup, moveit_cpp_);
                 robot_model_ = moveit_cpp_->getRobotModel();
                 joint_model_group_ = robot_model_->getJointModelGroup(planningGroup);
-                // getting current state of robot from environment
-                if (!moveit_cpp_->getPlanningSceneMonitor()->requestPlanningSceneState())
-                {
-                    ROS_ERROR_STREAM("failed to get planning scene");
-                    return;
-                }
             }
         }
         catch (const std::exception& e)
