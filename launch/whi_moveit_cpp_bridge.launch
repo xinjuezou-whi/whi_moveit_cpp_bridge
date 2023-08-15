@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <!-- argument -->
+  <arg name="controller" default="fake"/>
   <!-- urdf and srdf file -->
   <arg name="urdf_file" default="$(find chin_crb7_description)/urdf/chin_crb7.urdf.xacro"/>
   <arg name="srdf_file" default="$(find chin_crb7_moveit_config)/config/chin_arm.srdf"/>
@@ -20,8 +21,7 @@
 
   <!-- Trajectory execution  -->
   <include ns="whi_moveit_cpp_bridge" file="$(find chin_crb7_moveit_config)/launch/trajectory_execution.launch.xml">
-    <arg name="moveit_controller_manager" value="fake"/>
-    <!--<arg name="moveit_controller_manager" value="chin_arm"/>-->
+    <arg name="moveit_controller_manager" value="$(arg controller)"/>
   </include>
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
@@ -33,11 +33,14 @@
 
   <!-- If needed, broadcast static tf for robot root -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 world $(arg base_link)" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 chin_link_tcp camera" />
 
-  <!-- send fake joint values -->
-  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-    <rosparam param="source_list">["/whi_moveit_cpp_bridge/fake_controller_joint_states"]</rosparam>
-  </node>
+  <group if="$(eval arg('controller') == 'fake')">
+    <!-- send fake joint values -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+      <rosparam param="source_list">["/whi_moveit_cpp_bridge/fake_controller_joint_states"]</rosparam>
+    </node>
+  </group>
 
   <!-- Start robot state publisher -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>

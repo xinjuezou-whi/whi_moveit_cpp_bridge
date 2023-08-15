@@ -77,7 +77,7 @@ namespace whi_moveit_cpp_bridge
     bool MoveItCppBridge::execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose)
     {
         auto startState = moveit_cpp_->getCurrentState();
-        planning_components_->setStartState(*startState);
+        planning_components_->setStartStateToCurrentState();
         
         if (PoseGroup.empty())
         {
