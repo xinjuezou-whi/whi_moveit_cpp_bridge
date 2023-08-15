@@ -1,4 +1,4 @@
 whi_moveit_cpp_bridge:
   planning_group: chin_arm
-  tcp_pose_topic: tcp_pose
-  tcp_pose_service: tcp_pose
+  tcp_pose_service: /tcp_pose
+  tcp_pose_topic: /tcp_pose

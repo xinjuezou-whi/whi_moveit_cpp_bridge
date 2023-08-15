@@ -52,20 +52,26 @@ namespace whi_moveit_cpp_bridge
             return;
         }
 
-        // subscriber
-        std::string topic;
-        node_handle_->param("tcp_pose_topic", topic, std::string(""));
-        if (!topic.empty())
-        {
-            target_sub_ = std::make_unique<ros::Subscriber>(
-			    node_handle_->subscribe<whi_interfaces::WhiTcpPose>(topic, 10,
-			    std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
-        }
-        // providing the tcp pose service
+        // providing the tcp pose service, and it will preempt publisher
         std::string service;
-        node_handle_->param("tcp_pose_service", service, std::string("tcp_pose"));
-        target_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService(service, &MoveItCppBridge::onServiceTcpPose, this));
+        node_handle_->param("tcp_pose_service", service, std::string());
+        if (!service.empty())
+        {
+            target_srv_ = std::make_unique<ros::ServiceServer>(
+                node_handle_->advertiseService(service, &MoveItCppBridge::onServiceTcpPose, this));
+        }
+        else
+        {
+            // subscriber
+            std::string topic;
+            node_handle_->param("tcp_pose_topic", topic, std::string(""));
+            if (!topic.empty())
+            {
+                target_sub_ = std::make_unique<ros::Subscriber>(
+			        node_handle_->subscribe<whi_interfaces::WhiTcpPose>(topic, 10,
+			        std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
+            }
+        }
     }
 
     bool MoveItCppBridge::execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose)
