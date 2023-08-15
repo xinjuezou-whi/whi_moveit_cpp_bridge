@@ -30,12 +30,12 @@ rostopic pub -1 /whi_moveit_cpp_bridge/tcp_pose whi_interfaces/WhiTcpPose "{tcp_
 
 Like Published topic use the rosservice command line to make a quick validation:
 ```
-rosservice call /tcp_pose "{pose_group: 'ready'}"
+rosservice call /whi_moveit_cpp_bridge/tcp_pose "{pose_group: 'ready'}"
 ```
 
 and the following for pose:
 ```
-rosservice call /tcp_pose "{tcp_pose: {header: {frame_id: 'camera'}, pose:{position: {x: 0.0, y: 0.1, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}"
+rosservice call /whi_moveit_cpp_bridge/tcp_pose "{tcp_pose: {header: {frame_id: 'camera'}, pose:{position: {x: 0.0, y: 0.1, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}"
 ```
 
 > NOTE: please replace the pose_group and the position/orientation with your configured ones respectively
