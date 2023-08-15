@@ -43,6 +43,7 @@ namespace whi_moveit_cpp_bridge
                 planning_components_ = std::make_shared<moveit_cpp::PlanningComponent>(planningGroup, moveit_cpp_);
                 robot_model_ = moveit_cpp_->getRobotModel();
                 joint_model_group_ = robot_model_->getJointModelGroup(planningGroup);
+                planning_components_->setStartStateToCurrentState();
             }
         }
         catch (const std::exception& e)
@@ -69,7 +70,7 @@ namespace whi_moveit_cpp_bridge
 
     bool MoveItCppBridge::execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose)
     {
-        auto startState = moveit_cpp_->getCurrentState(2.0);
+        auto startState = moveit_cpp_->getCurrentState();
         planning_components_->setStartState(*startState);
         
         if (PoseGroup.empty())
@@ -86,8 +87,14 @@ namespace whi_moveit_cpp_bridge
                 geometry_msgs::PoseStamped transformedPose;
                 if (trans2TargetFrame(armRoot, Pose, transformedPose))
                 {
+#ifdef DEBUG
+                    std::cout << "pose from msg x:" << Pose.pose.position.x << ",y:" <<
+                        Pose.pose.position.y << ",z:" << Pose.pose.position.z << std::endl;
+                    std::cout << "transformed pose x:" << transformedPose.pose.position.x << ",y:" <<
+                        transformedPose.pose.position.y << ",z:" << transformedPose.pose.position.z << std::endl;
+#endif
                     state.setFromIK(joint_model_group_, transformedPose.pose);
-                }                
+                }
             }
 
             planning_components_->setGoal(state);
