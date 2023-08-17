@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>whi_moveit_cpp_bridge</name>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <description>The whi_moveit_cpp_bridge package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
@@ -51,15 +51,24 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>moveit_core</build_depend>
+  <build_depend>moveit_ros_perception</build_depend>
+  <build_depend>moveit_ros_planning</build_depend>
+  <build_depend>moveit_ros_planning_interface</build_depend>
+  <build_depend>whi_interfaces</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>moveit_core</build_export_depend>
+  <build_export_depend>moveit_ros_perception</build_export_depend>
+  <build_export_depend>moveit_ros_planning</build_export_depend>
+  <build_export_depend>moveit_ros_planning_interface</build_export_depend>
+  <build_export_depend>whi_interfaces</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-  <build_depend>moveit_ros_perception</build_depend>
-  <build_export_depend>moveit_ros_perception</build_export_depend>
+  <exec_depend>moveit_core</exec_depend>
   <exec_depend>moveit_ros_perception</exec_depend>
-  <build_depend>whi_interfaces</build_depend>
-  <build_export_depend>whi_interfaces</build_export_depend>
+  <exec_depend>moveit_ros_planning</exec_depend>
+  <exec_depend>moveit_ros_planning_interface</exec_depend>
   <exec_depend>whi_interfaces</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
