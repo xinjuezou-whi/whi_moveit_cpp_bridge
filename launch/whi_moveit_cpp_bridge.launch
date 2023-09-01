@@ -18,9 +18,6 @@
     </node>
   </group>
 
-  <!-- Start robot state publisher -->
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
-
   <!-- arm launcher -->
   <group if="$(eval arg('combined') == true)">
     <group if="$(eval arg('arm') == 'chin')">
