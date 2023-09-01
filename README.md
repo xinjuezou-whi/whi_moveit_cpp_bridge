@@ -39,3 +39,5 @@ rosservice call /whi_moveit_cpp_bridge/tcp_pose "{tcp_pose: {header: {frame_id: 
 ```
 
 > NOTE: please replace the pose_group and the position/orientation with your configured ones respectively
+
+> TIP: use the Matlab online to calculate the quaternion: https://www.mathworks.com/help/nav/ref/eul2quat.html
