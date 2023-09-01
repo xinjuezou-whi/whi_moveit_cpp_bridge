@@ -1,40 +1,15 @@
 <?xml version="1.0"?>
 <launch>
   <!-- argument -->
-  <arg name="arm" default="chin_crb7"/>
+  <arg name="arm" default="chin"/>
+  <arg name="arm_model" default="crb7"/>
   <arg name="controller" default="fake"/>
-  <!-- urdf and srdf file -->
-  <arg name="urdf_file" default="$(find chin_crb7_description)/urdf/chin_crb7.urdf.xacro"/>
-  <arg name="srdf_file" default="$(find chin_crb7_moveit_config)/config/chin_crb7.srdf"/>
-  <arg name="base_link" default="chin_link_0"/>
-  <!--<arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_L1_combined_diff.urdf.xacro"/>
-  <arg name="srdf_file" default="$(find chin_crb7_moveit_config)/config/chin_arm_combined.srdf"/>
-  <arg name="base_link" default="base_link"/>-->
+  <arg name="combined" default="false"/>
 
   <!-- params -->
-  <rosparam file="$(find whi_moveit_cpp_bridge)/config/config_$(arg arm).yaml" command="load" subst_value="true"/>
-
+  <rosparam file="$(find whi_moveit_cpp_bridge)/config/config_$(arg arm)_$(arg arm_model).yaml" command="load" subst_value="true"/>
   <!-- Specify the config files to use -->
-  <rosparam ns="whi_moveit_cpp_bridge" command="load" file="$(find whi_moveit_cpp_bridge)/config/moveit_cpp.yaml" />
-
-  <!-- Planning Pipeline -->
-  <include ns="/whi_moveit_cpp_bridge/ompl" file="$(find chin_crb7_moveit_config)/launch/ompl_planning_pipeline.launch.xml"/>
-
-  <!-- Trajectory execution  -->
-  <include ns="whi_moveit_cpp_bridge" file="$(find chin_crb7_moveit_config)/launch/trajectory_execution.launch.xml">
-    <arg name="moveit_controller_manager" value="$(arg controller)"/>
-  </include>
-
-  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
-  <include file="$(find chin_crb7_moveit_config)/launch/planning_context.launch">
-    <arg name="urdf_file" value="$(arg urdf_file)"/>
-    <arg name="srdf_file" value="$(arg srdf_file)"/>
-    <arg name="load_robot_description" value="true"/>
-  </include>
-
-  <!-- If needed, broadcast static tf for robot root -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 world $(arg base_link)" />
-  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 chin_link_tcp camera" />
+  <rosparam ns="whi_moveit_cpp_bridge" command="load" file="$(find whi_moveit_cpp_bridge)/config/moveit_cpp.yaml"/>
 
   <group if="$(eval arg('controller') == 'fake')">
     <!-- send fake joint values -->
@@ -46,11 +21,23 @@
   <!-- Start robot state publisher -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
 
-  <!-- launch rviz -->
-  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
-    args="-d $(find whi_moveit_cpp_bridge)/launch/rviz_config.rviz" output="screen">
-    <rosparam command="load" file="$(find chin_crb7_moveit_config)/config/kinematics.yaml"/>
-  </node>
+  <!-- arm launcher -->
+  <group if="$(eval arg('combined') == true)">
+    <group if="$(eval arg('arm') == 'chin')">
+      <include file="$(dirname)/combined_bringup.launch">
+        <arg name="arm" value="$(arg arm)"/>
+        <arg name="arm_model" value="$(arg arm_model)"/>
+        <arg name="controller" value="$(arg controller)"/>
+      </include>
+    </group>
+  </group>
+  <group unless="$(eval arg('combined') == true)">
+    <include file="$(dirname)/$(arg arm)_bringup.launch">
+      <arg name="arm" value="$(arg arm)"/>
+      <arg name="arm_model" value="$(arg arm_model)"/>
+      <arg name="controller" value="$(arg controller)"/>
+    </include>
+  </group>
 
   <!-- hardware interface -->
   <node name="whi_moveit_cpp_bridge" pkg="whi_moveit_cpp_bridge" type="whi_moveit_cpp_bridge_node" output="screen"/>
