@@ -20,13 +20,11 @@
 
   <!-- arm launcher -->
   <group if="$(eval arg('combined') == true)">
-    <group if="$(eval arg('arm') == 'chin')">
-      <include file="$(dirname)/combined_bringup.launch">
-        <arg name="arm" value="$(arg arm)"/>
-        <arg name="arm_model" value="$(arg arm_model)"/>
-        <arg name="controller" value="$(arg controller)"/>
-      </include>
-    </group>
+    <include file="$(dirname)/$(arg arm)_combined_bringup.launch">
+      <arg name="arm" value="$(arg arm)"/>
+      <arg name="arm_model" value="$(arg arm_model)"/>
+      <arg name="controller" value="$(arg controller)"/>
+    </include>
   </group>
   <group unless="$(eval arg('combined') == true)">
     <include file="$(dirname)/$(arg arm)_bringup.launch">
