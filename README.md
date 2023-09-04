@@ -41,3 +41,22 @@ rosservice call /whi_moveit_cpp_bridge/tcp_pose "{tcp_pose: {header: {frame_id: 
 > NOTE: please replace the pose_group and the position/orientation with your configured ones respectively
 
 > TIP: use the Matlab online to calculate the quaternion: https://www.mathworks.com/help/nav/ref/eul2quat.html
+
+## Usage
+For a quick validation, set the argument "controller" to "fake", for controlling a real arm, please refer to arm's hardware interface for its controller name:
+
+### Fake controller
+```
+# UR10e
+roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=ur arm_model:=10e controller:=fake
+# Chin CRB7
+roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=chin arm_model:=crb7 controller:=fake
+```
+
+### Real hardware
+```
+# UR10e
+roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=ur arm_model:=10e controller:=ur10e
+# Chin CRB7
+roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=chin arm_model:=crb7 controller:=chin_crb7
+```
