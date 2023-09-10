@@ -33,6 +33,7 @@ namespace whi_moveit_cpp_bridge
         // params
         std::string planningGroup;
         node_handle_->param("planning_group", planningGroup, std::string("whi_arm"));
+        loadInitPlanParams();
 
         try
         {
@@ -74,24 +75,25 @@ namespace whi_moveit_cpp_bridge
         }
     }
 
-    bool MoveItCppBridge::execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose)
+    bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
     {
         auto startState = moveit_cpp_->getCurrentState();
         planning_components_->setStartStateToCurrentState();
         
-        if (PoseGroup.empty())
+        if (Pose.pose_group.empty())
         {
             auto state = *startState;
 
             std::string armRoot = robot_model_->getRootLinkName();
-            if (Pose.header.frame_id == armRoot || Pose.header.frame_id == "world" || Pose.header.frame_id.empty())
+            if (Pose.tcp_pose.header.frame_id == armRoot ||
+                Pose.tcp_pose.header.frame_id == "world" || Pose.tcp_pose.header.frame_id.empty())
             {
-                state.setFromIK(joint_model_group_, Pose.pose);
+                state.setFromIK(joint_model_group_, Pose.tcp_pose.pose);
             }
             else
             {
                 geometry_msgs::PoseStamped transformedPose;
-                if (trans2TargetFrame(armRoot, Pose, transformedPose))
+                if (trans2TargetFrame(armRoot, Pose.tcp_pose, transformedPose))
                 {
 #ifdef DEBUG
                     std::cout << "pose from msg x:" << Pose.pose.position.x << ",y:" <<
@@ -107,9 +109,18 @@ namespace whi_moveit_cpp_bridge
         }
         else
         {
-            planning_components_->setGoal(PoseGroup);
+            planning_components_->setGoal(Pose.pose_group);
         }
-        auto solution = planning_components_->plan();
+        moveit_cpp::PlanningComponent::PlanRequestParameters params = init_plan_parameters_;
+        if (Pose.velocity_scale > 0.0)
+        {
+            params.max_velocity_scaling_factor = Pose.velocity_scale;
+        }
+        if (Pose.acceleration_scale > 0.0)
+        {
+            params.max_acceleration_scaling_factor = Pose.acceleration_scale;
+        }
+        auto solution = planning_components_->plan(params);
         if (solution)
         {
 #ifndef DEBUG
@@ -126,13 +137,13 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg)
     {
-        execute(Msg->pose_group, Msg->tcp_pose);
+        execute(*Msg);
     }
 
     bool MoveItCppBridge::onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
         whi_interfaces::WhiSrvTcpPose::Response& Res)
     {
-        Res.result = execute(Req.pose_group, Req.tcp_pose);
+        Res.result = execute(Req.pose);
 
         return Res.result;
     }
@@ -150,5 +161,25 @@ namespace whi_moveit_cpp_bridge
             ROS_ERROR_STREAM(e.what());
             return false;
         }
+    }
+
+    void MoveItCppBridge::loadInitPlanParams()
+    {
+        node_handle_->param("plan_request_params/planner_id", init_plan_parameters_.planner_id, std::string(""));
+        node_handle_->param("plan_request_params/planning_pipeline",
+            init_plan_parameters_.planning_pipeline, std::string(""));
+        node_handle_->param("plan_request_params/planning_time", init_plan_parameters_.planning_time, 1.0);
+        node_handle_->param("plan_request_params/planning_attempts", init_plan_parameters_.planning_attempts, 5);
+        node_handle_->param("plan_request_params/max_velocity_scaling_factor",
+            init_plan_parameters_.max_velocity_scaling_factor, 1.0);
+        node_handle_->param("plan_request_params/max_acceleration_scaling_factor",
+            init_plan_parameters_.max_acceleration_scaling_factor, 1.0);
+#ifndef DEBUG
+        std::cout << "request params:" << init_plan_parameters_.planner_id << ","
+            << init_plan_parameters_.planning_pipeline<< ","
+            << init_plan_parameters_.planning_time << "," << init_plan_parameters_.planning_attempts << ","
+            << init_plan_parameters_.max_velocity_scaling_factor << ","
+            << init_plan_parameters_.max_acceleration_scaling_factor << std::endl;
+#endif
     }
 } // namespace whi_moveit_cpp_bridge

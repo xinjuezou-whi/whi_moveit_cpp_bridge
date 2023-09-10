@@ -39,12 +39,13 @@ namespace whi_moveit_cpp_bridge
 
     protected:
         void init();
-        bool execute(const std::string& PoseGroup, const geometry_msgs::PoseStamped& Pose);
+        bool execute(const whi_interfaces::WhiTcpPose& Pose);
         void callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg);
         bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
             whi_interfaces::WhiSrvTcpPose::Response& Res);
         bool trans2TargetFrame(const std::string& DstFrame,
             const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut);
+        void loadInitPlanParams();
 
     protected:
         std::shared_ptr<ros::NodeHandle> node_handle_{ nullptr };
@@ -54,5 +55,6 @@ namespace whi_moveit_cpp_bridge
         const moveit::core::JointModelGroup* joint_model_group_{ nullptr };
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
+        moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;
 	};
 } // namespace whi_moveit_cpp_bridge

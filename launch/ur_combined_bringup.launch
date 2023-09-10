@@ -3,7 +3,7 @@
   <!-- argument -->
   <arg name="arm" default="ur"/>
   <arg name="arm_model" default="10e"/>
-  <arg name="vehicle_model" default="L1_ur_combined_diff"/>
+  <arg name="vehicle_model" default="L1_ur_combined_diff4"/>
   <arg name="controller" default="fake"/>
   <!-- urdf and srdf file -->
   <arg name="moveit_config_path" value="$(eval '$(find ' + arg('arm') + arg('arm_model') + '_moveit_config)')"/>
