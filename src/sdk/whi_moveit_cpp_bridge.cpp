@@ -174,7 +174,7 @@ namespace whi_moveit_cpp_bridge
             init_plan_parameters_.max_velocity_scaling_factor, 1.0);
         node_handle_->param("plan_request_params/max_acceleration_scaling_factor",
             init_plan_parameters_.max_acceleration_scaling_factor, 1.0);
-#ifndef DEBUG
+#ifdef DEBUG
         std::cout << "request params:" << init_plan_parameters_.planner_id << ","
             << init_plan_parameters_.planning_pipeline<< ","
             << init_plan_parameters_.planning_time << "," << init_plan_parameters_.planning_attempts << ","
