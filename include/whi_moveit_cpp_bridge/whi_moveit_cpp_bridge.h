@@ -20,7 +20,6 @@ Changelog:
 2022-xx-xx: xxx
 ******************************************************************/
 #pragma once
-#include "whi_interfaces/WhiTcpPose.h"
 #include "whi_interfaces/WhiSrvTcpPose.h"
 
 #include <ros/ros.h>
