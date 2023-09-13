@@ -96,10 +96,15 @@ namespace whi_moveit_cpp_bridge
                 if (trans2TargetFrame(armRoot, Pose.tcp_pose, transformedPose))
                 {
 #ifdef DEBUG
-                    std::cout << "pose from msg x:" << Pose.pose.position.x << ",y:" <<
-                        Pose.pose.position.y << ",z:" << Pose.pose.position.z << std::endl;
-                    std::cout << "transformed pose x:" << transformedPose.pose.position.x << ",y:" <<
-                        transformedPose.pose.position.y << ",z:" << transformedPose.pose.position.z << std::endl;
+                    std::cout << "pose from msg x:" << Pose.tcp_pose.pose.position.x << ",y:" <<
+                        Pose.tcp_pose.pose.position.y << ",z:" << Pose.tcp_pose.pose.position.z << std::endl;
+                    std::cout << "transformed pose from " << Pose.tcp_pose.header.frame_id << " to " << armRoot <<
+                        " with pose x:" << transformedPose.pose.position.x << ",y:" <<
+                        transformedPose.pose.position.y << ",z:" << transformedPose.pose.position.z <<
+                        "-orientation x:" << transformedPose.pose.orientation.x <<
+                        ",y:" << transformedPose.pose.orientation.y <<
+                        ",z:" << transformedPose.pose.orientation.z <<
+                        ",w:" << transformedPose.pose.orientation.w << std::endl;
 #endif
                     state.setFromIK(joint_model_group_, transformedPose.pose);
                 }
@@ -121,11 +126,11 @@ namespace whi_moveit_cpp_bridge
             params.max_acceleration_scaling_factor = Pose.acceleration_scale;
         }
         auto solution = planning_components_->plan(params);
-        if (solution)
-        {
 #ifndef DEBUG
             std::cout << "trajectory waypoints count " << solution.trajectory_->getWayPointCount() << std::endl;
 #endif
+        if (solution)
+        {
             return planning_components_->execute();
         }
         else
