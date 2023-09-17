@@ -45,6 +45,8 @@ namespace whi_moveit_cpp_bridge
         bool trans2TargetFrame(const std::string& DstFrame,
             const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut);
         void loadInitPlanParams();
+        bool checkPlanned(const moveit::core::RobotState& CurrentState,
+            const moveit::core::RobotState& LastPlannedWaypointState);
 
     protected:
         std::shared_ptr<ros::NodeHandle> node_handle_{ nullptr };
@@ -55,5 +57,6 @@ namespace whi_moveit_cpp_bridge
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
         moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;
+        int max_ik_try_cout_{ 3 };
 	};
 } // namespace whi_moveit_cpp_bridge

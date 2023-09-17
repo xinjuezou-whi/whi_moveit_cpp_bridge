@@ -1,4 +1,5 @@
 whi_moveit_cpp_bridge:
   planning_group: manipulator
+  max_ik_try_count: 3
   tcp_pose_service: tcp_pose
   tcp_pose_topic: tcp_pose

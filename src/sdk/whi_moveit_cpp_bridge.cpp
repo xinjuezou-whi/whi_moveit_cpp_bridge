@@ -34,6 +34,7 @@ namespace whi_moveit_cpp_bridge
         std::string planningGroup;
         node_handle_->param("planning_group", planningGroup, std::string("whi_arm"));
         loadInitPlanParams();
+        node_handle_->param("max_ik_try_count", max_ik_try_cout_, 3);
 
         try
         {
@@ -79,63 +80,78 @@ namespace whi_moveit_cpp_bridge
     {
         auto startState = moveit_cpp_->getCurrentState();
         planning_components_->setStartStateToCurrentState();
-        
+
+        bool foundIk = true;
+
         if (Pose.pose_group.empty())
         {
             auto state = *startState;
 
+            geometry_msgs::PoseStamped targetPose = Pose.tcp_pose;
             std::string armRoot = robot_model_->getRootLinkName();
-            if (Pose.tcp_pose.header.frame_id == armRoot ||
-                Pose.tcp_pose.header.frame_id == "world" || Pose.tcp_pose.header.frame_id.empty())
+            if (Pose.tcp_pose.header.frame_id != armRoot &&
+                Pose.tcp_pose.header.frame_id != "world" && !Pose.tcp_pose.header.frame_id.empty())
             {
-                state.setFromIK(joint_model_group_, Pose.tcp_pose.pose);
-            }
-            else
-            {
-                geometry_msgs::PoseStamped transformedPose;
-                if (trans2TargetFrame(armRoot, Pose.tcp_pose, transformedPose))
+                if (!trans2TargetFrame(armRoot, Pose.tcp_pose, targetPose))
                 {
-#ifdef DEBUG
-                    std::cout << "pose from msg x:" << Pose.tcp_pose.pose.position.x << ",y:" <<
-                        Pose.tcp_pose.pose.position.y << ",z:" << Pose.tcp_pose.pose.position.z << std::endl;
-                    std::cout << "transformed pose from " << Pose.tcp_pose.header.frame_id << " to " << armRoot <<
-                        " with pose x:" << transformedPose.pose.position.x << ",y:" <<
-                        transformedPose.pose.position.y << ",z:" << transformedPose.pose.position.z <<
-                        "-orientation x:" << transformedPose.pose.orientation.x <<
-                        ",y:" << transformedPose.pose.orientation.y <<
-                        ",z:" << transformedPose.pose.orientation.z <<
-                        ",w:" << transformedPose.pose.orientation.w << std::endl;
-#endif
-                    state.setFromIK(joint_model_group_, transformedPose.pose);
+                    ROS_WARN_STREAM("failed to get pose transform");
+                    return false;
                 }
+#ifdef DEBUG
+                std::cout << "pose from msg x:" << Pose.tcp_pose.pose.position.x << ",y:" <<
+                    Pose.tcp_pose.pose.position.y << ",z:" << Pose.tcp_pose.pose.position.z << std::endl;
+                std::cout << "transformed pose from " << Pose.tcp_pose.header.frame_id << " to " << armRoot <<
+                    " with pose x:" << targetPose.pose.position.x << ",y:" <<
+                    targetPose.pose.position.y << ",z:" << targetPose.pose.position.z <<
+                    "-orientation x:" << targetPose.pose.orientation.x <<
+                    ",y:" << targetPose.pose.orientation.y <<
+                    ",z:" << targetPose.pose.orientation.z <<
+                    ",w:" << targetPose.pose.orientation.w << std::endl;
+#endif
             }
 
-            planning_components_->setGoal(state);
+            int tryCount = 0;
+            do
+            {
+                foundIk = state.setFromIK(joint_model_group_, targetPose.pose);
+                ++tryCount;
+            } while (tryCount < max_ik_try_cout_ && !foundIk);
+
+            if (foundIk)
+            {
+                planning_components_->setGoal(state);
+            }
         }
         else
         {
             planning_components_->setGoal(Pose.pose_group);
         }
-        moveit_cpp::PlanningComponent::PlanRequestParameters params = init_plan_parameters_;
-        if (Pose.velocity_scale > 0.0)
+
+        if (foundIk)
         {
-            params.max_velocity_scaling_factor = Pose.velocity_scale;
-        }
-        if (Pose.acceleration_scale > 0.0)
-        {
-            params.max_acceleration_scaling_factor = Pose.acceleration_scale;
-        }
-        auto solution = planning_components_->plan(params);
-#ifndef DEBUG
-            std::cout << "trajectory waypoints count " << solution.trajectory_->getWayPointCount() << std::endl;
-#endif
-        if (solution)
-        {
-            return planning_components_->execute();
+            moveit_cpp::PlanningComponent::PlanRequestParameters params = init_plan_parameters_;
+            if (Pose.velocity_scale > 0.0)
+            {
+                params.max_velocity_scaling_factor = Pose.velocity_scale;
+            }
+            if (Pose.acceleration_scale > 0.0)
+            {
+                params.max_acceleration_scaling_factor = Pose.acceleration_scale;
+            }
+            auto solution = planning_components_->plan(params);
+            if (solution)
+            {
+                return planning_components_->execute();
+            }
+            else
+            {
+                ROS_WARN_STREAM("failed to find path solution");
+                return false;
+            }
         }
         else
         {
-            ROS_WARN_STREAM("failed to find solution");
+            ROS_WARN_STREAM("failed to find IK solution");
             return false;
         }
     }
@@ -187,4 +203,20 @@ namespace whi_moveit_cpp_bridge
             << init_plan_parameters_.max_acceleration_scaling_factor << std::endl;
 #endif
     }
+
+    bool MoveItCppBridge::checkPlanned(const moveit::core::RobotState& CurrentState,
+        const moveit::core::RobotState& LastPlannedWaypointState)
+    {
+        const auto current = CurrentState.getVariablePositions();
+        const auto plannedLast = LastPlannedWaypointState.getVariablePositions();
+        
+        bool succeed = false;
+        for (size_t i = 0; i < CurrentState.getVariableCount(); ++i)
+        {
+            succeed |= fabs(current[i] - plannedLast[i]) > 1e-3;
+        }
+
+        return succeed;
+    }
+
 } // namespace whi_moveit_cpp_bridge
