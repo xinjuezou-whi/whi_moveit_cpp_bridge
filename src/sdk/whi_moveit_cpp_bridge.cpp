@@ -113,7 +113,7 @@ namespace whi_moveit_cpp_bridge
             int tryCount = 0;
             do
             {
-                foundIk = state.setFromIK(joint_model_group_, targetPose.pose);
+                foundIk = state.setFromIK(joint_model_group_, targetPose.pose, (unsigned int)max_ik_try_cout_);
                 ++tryCount;
             } while (tryCount < max_ik_try_cout_ && !foundIk);
 

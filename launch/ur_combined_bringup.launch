@@ -7,17 +7,10 @@
   <arg name="controller" default="fake"/>
   <!-- urdf and srdf file -->
   <arg name="moveit_config_path" value="$(eval '$(find ' + arg('arm') + arg('arm_model') + '_moveit_config)')"/>
-  <arg name="description_path" value="$(eval '$(find ' + arg('arm') + '_description)')"/>
-  <arg name="base_link" default="base_link"/>
-  <!-- <include file="$(arg description_path)launch/load_$(arg arm)$(arg arm_model).launch"/> -->
   <arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_$(arg vehicle_model).urdf.xacro"/>
   <arg name="srdf_file" default="$(arg moveit_config_path)config/$(arg arm)$(arg arm_model)_combined.srdf"/>
-  <arg name="prefix" default="$(arg arm)$(arg arm_model)_" if="$(eval arg('controller') == 'fake')"/>
-  <arg name="prefix" default="" unless="$(eval arg('controller') == 'fake')"/>
-
-  <arg name="urdf_load" default="$(find xacro)/xacro --inorder
-    '$(find whi_amr_description)/urdf/NaviBOT_$(arg vehicle_model).urdf.xacro'"/>
-  <param name="robot_description" command="$(arg urdf_load)"/>
+  <arg name="base_link" default="base_link"/>
+  <arg name="prefix" default="$(arg arm)$(arg arm_model)_"/>
 
   <!-- Planning Pipeline -->
   <include ns="/whi_moveit_cpp_bridge/ompl" file="$(arg moveit_config_path)launch/ompl_planning_pipeline.launch.xml"/>
