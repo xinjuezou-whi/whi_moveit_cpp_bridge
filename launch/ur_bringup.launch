@@ -4,13 +4,18 @@
   <arg name="arm" default="ur"/>
   <arg name="arm_model" default="10e"/>
   <arg name="controller" default="fake"/>
+  <arg name="with_rviz" default="true"/>
   <!-- urdf and srdf file -->
   <arg name="moveit_config_path" value="$(eval '$(find ' + arg('arm') + arg('arm_model') + '_moveit_config)')"/>
   <arg name="urdf_file" default="$(find ur_description)/urdf/$(arg arm)$(arg arm_model).xacro"/>
   <arg name="srdf_file" default="$(arg moveit_config_path)config/$(arg arm)$(arg arm_model).srdf"/>
   <arg name="description_path" value="$(eval '$(find ' + arg('arm') + '_description)')"/>
-  <arg name="base_link" default="base_link"/>
+  <arg name="fixed_frame" default="world"/>
+  <arg name="base_frame" default="base_link"/>
   <include file="$(arg description_path)launch/load_$(arg arm)$(arg arm_model).launch"/>
+
+  <!-- kinematics -->
+  <rosparam command="load" file="$(arg moveit_config_path)config/kinematics.yaml"/>
 
   <!-- Planning Pipeline -->
   <include ns="/whi_moveit_cpp_bridge/ompl" file="$(arg moveit_config_path)launch/ompl_planning_pipeline.launch.xml"/>
@@ -28,12 +33,12 @@
   </include>
 
   <!-- If needed, broadcast static tf for robot root -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 world $(arg base_link)" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 $(arg fixed_frame) $(arg base_frame)" />
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 wrist_3_link camera" />
 
   <!-- launch rviz -->
-  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
-    args="-d $(find whi_moveit_cpp_bridge)/launch/rviz_config.rviz" output="screen">
-    <rosparam command="load" file="$(arg moveit_config_path)config/kinematics.yaml"/>
-  </node>
+  <group if="$(arg with_rviz)">
+    <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+      args="-d $(find whi_moveit_cpp_bridge)/launch/rviz_config.rviz" output="screen"/>
+  </group>
 </launch>
