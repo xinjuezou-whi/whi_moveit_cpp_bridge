@@ -5,6 +5,7 @@
   <arg name="arm_model" default="crb7"/>
   <arg name="controller" default="fake"/>
   <arg name="combined" default="false"/>
+  <arg name="with_rviz" default="true"/>
 
   <!-- params -->
   <rosparam file="$(find whi_moveit_cpp_bridge)/config/config_$(arg arm)_$(arg arm_model).yaml" command="load" subst_value="true"/>
@@ -24,6 +25,7 @@
       <arg name="arm" value="$(arg arm)"/>
       <arg name="arm_model" value="$(arg arm_model)"/>
       <arg name="controller" value="$(arg controller)"/>
+      <arg name="with_rviz" value="$(arg with_rviz)"/>
     </include>
   </group>
   <group unless="$(eval arg('combined') == true)">
@@ -31,6 +33,7 @@
       <arg name="arm" value="$(arg arm)"/>
       <arg name="arm_model" value="$(arg arm_model)"/>
       <arg name="controller" value="$(arg controller)"/>
+      <arg name="with_rviz" value="$(arg with_rviz)"/>
     </include>
   </group>
 
