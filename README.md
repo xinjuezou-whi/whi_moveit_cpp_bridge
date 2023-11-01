@@ -61,3 +61,15 @@ roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=ur arm_model:=
 # Chin CRB7
 roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=chin arm_model:=crb7 controller:=chin_crb7
 ```
+
+## Params
+```
+whi_moveit_cpp_bridge:
+  planning_group: manipulator
+  max_ik_try_count: 30
+  tcp_pose_service: tcp_pose
+  tcp_pose_topic: tcp_pose
+  motion_state_topic: arm_motion_state
+```
+
+The param "motion_state_topic" creates the subscriber to receive the message whether the arm enters the protective stop state.
