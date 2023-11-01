@@ -21,6 +21,7 @@ Changelog:
 ******************************************************************/
 #pragma once
 #include "whi_interfaces/WhiSrvTcpPose.h"
+#include "whi_interfaces/WhiMotionState.h"
 
 #include <ros/ros.h>
 #include <moveit/moveit_cpp/moveit_cpp.h>
@@ -40,6 +41,7 @@ namespace whi_moveit_cpp_bridge
         void init();
         bool execute(const whi_interfaces::WhiTcpPose& Pose);
         void callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg);
+        void callbackMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
         bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
             whi_interfaces::WhiSrvTcpPose::Response& Res);
         bool trans2TargetFrame(const std::string& DstFrame,
@@ -56,7 +58,9 @@ namespace whi_moveit_cpp_bridge
         const moveit::core::JointModelGroup* joint_model_group_{ nullptr };
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
+        std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };
         moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;
         int max_ik_try_cout_{ 3 };
+        int motion_state_{ whi_interfaces::WhiMotionState::STA_STANDBY };
 	};
 } // namespace whi_moveit_cpp_bridge

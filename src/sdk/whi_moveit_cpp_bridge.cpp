@@ -74,6 +74,13 @@ namespace whi_moveit_cpp_bridge
 			        std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
             }
         }
+
+        // subscribe to arm motion state
+        std::string stateTopic;
+        node_handle_->param("motion_state_topic", stateTopic, std::string("arm_moton_state"));
+        motion_state_sub_ = std::make_unique<ros::Subscriber>(
+		    node_handle_->subscribe<whi_interfaces::WhiMotionState>(stateTopic, 10,
+		    std::bind(&MoveItCppBridge::callbackMotionState, this, std::placeholders::_1)));
     }
 
     bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
@@ -141,7 +148,13 @@ namespace whi_moveit_cpp_bridge
             auto solution = planning_components_->plan(params);
             if (solution)
             {
-                return planning_components_->execute();
+                bool res = planning_components_->execute();
+                if (motion_state_ == whi_interfaces::WhiMotionState::STA_FAULT)
+                {
+                    motion_state_ = whi_interfaces::WhiMotionState::STA_STANDBY;
+                    res = false;
+                }
+                return res;
             }
             else
             {
@@ -159,6 +172,11 @@ namespace whi_moveit_cpp_bridge
     void MoveItCppBridge::callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg)
     {
         execute(*Msg);
+    }
+
+    void MoveItCppBridge::callbackMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg)
+    {
+        motion_state_ = Msg->state;
     }
 
     bool MoveItCppBridge::onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
