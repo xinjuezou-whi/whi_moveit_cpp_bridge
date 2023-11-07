@@ -153,6 +153,8 @@ namespace whi_moveit_cpp_bridge
                 {
                     motion_state_ = whi_interfaces::WhiMotionState::STA_STANDBY;
                     res = false;
+
+                    ROS_ERROR_STREAM("protective stop encountered");
                 }
                 return res;
             }
