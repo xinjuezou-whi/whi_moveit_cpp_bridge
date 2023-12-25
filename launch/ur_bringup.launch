@@ -6,7 +6,7 @@
   <arg name="controller" default="fake"/>
   <arg name="with_rviz" default="true"/>
   <!-- urdf and srdf file -->
-  <arg name="moveit_config_path" value="$(eval '$(find ' + arg('arm') + arg('arm_model') + '_moveit_config)')"/>
+  <arg name="moveit_config_path" value="$(eval '$(find ' + arg('arm') + str(arg('arm_model')) + '_moveit_config)')"/>
   <arg name="urdf_file" default="$(find ur_description)/urdf/$(arg arm)$(arg arm_model).xacro"/>
   <arg name="srdf_file" default="$(arg moveit_config_path)config/$(arg arm)$(arg arm_model).srdf"/>
   <arg name="description_path" value="$(eval '$(find ' + arg('arm') + '_description)')"/>

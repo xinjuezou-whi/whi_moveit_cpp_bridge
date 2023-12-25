@@ -1,0 +1,6 @@
+whi_moveit_cpp_bridge:
+  planning_group: manipulator
+  max_ik_try_count: 30
+  tcp_pose_service: /tcp_pose
+  tcp_pose_topic: tcp_pose
+  motion_state_topic: /arm_motion_state
