@@ -13,8 +13,9 @@
   <!-- Specify the config files to use -->
   <rosparam ns="whi_moveit_cpp_bridge" command="load" file="$(find whi_moveit_cpp_bridge)/config/moveit_cpp.yaml"/>
 
+  <!-- send fake joint values -->
   <group if="$(eval arg('controller') == 'fake')">
-    <!-- send fake joint values -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
       <rosparam param="source_list">["/whi_moveit_cpp_bridge/fake_controller_joint_states"]</rosparam>
     </node>
