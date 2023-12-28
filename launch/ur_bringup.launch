@@ -4,7 +4,6 @@
   <arg name="arm" default="ur"/>
   <arg name="arm_model" default="10e"/>
   <arg name="controller" default="fake"/>
-  <arg name="with_rviz" default="true"/>
   <!-- urdf and srdf file -->
   <arg name="moveit_config_path" value="$(eval '$(find ' + arg('arm') + str(arg('arm_model')) + '_moveit_config)')"/>
   <arg name="urdf_file" default="$(find ur_description)/urdf/$(arg arm)$(arg arm_model).xacro"/>
@@ -36,9 +35,4 @@
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 $(arg fixed_frame) $(arg base_frame)" />
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 wrist_3_link camera" />
 
-  <!-- launch rviz -->
-  <group if="$(arg with_rviz)">
-    <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
-      args="-d $(find whi_moveit_cpp_bridge)/launch/rviz_config.rviz" output="screen"/>
-  </group>
 </launch>

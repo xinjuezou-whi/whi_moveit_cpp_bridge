@@ -4,7 +4,8 @@
   <arg name="arm" default="chin"/>
   <arg name="arm_model" default="crb7"/>
   <arg name="controller" default="fake"/>
-  <arg name="combined" default="false"/>
+  <arg name="vehicle" default=""/>
+  <arg name="vehicle_model" default="differential"/>
   <arg name="fixed_frame" default="world"/>
   <arg name="with_rviz" default="true"/>
 
@@ -13,34 +14,40 @@
   <!-- Specify the config files to use -->
   <rosparam ns="whi_moveit_cpp_bridge" command="load" file="$(find whi_moveit_cpp_bridge)/config/moveit_cpp.yaml"/>
 
-  <!-- send fake joint values -->
-  <group if="$(eval arg('controller') == 'fake')">
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
-    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-      <rosparam param="source_list">["/whi_moveit_cpp_bridge/fake_controller_joint_states"]</rosparam>
-    </node>
-  </group>
-
   <!-- arm launcher -->
-  <group if="$(eval arg('combined') == true)">
-    <include file="$(dirname)/$(arg arm)_combined_bringup.launch">
-      <arg name="arm" value="$(arg arm)"/>
-      <arg name="arm_model" value="$(arg arm_model)"/>
-      <arg name="controller" value="$(arg controller)"/>
-      <arg name="fixed_frame" value="$(arg fixed_frame)"/>
-      <arg name="with_rviz" value="$(arg with_rviz)"/>
-    </include>
-  </group>
-  <group unless="$(eval arg('combined') == true)">
+  <group if="$(eval arg('vehicle') == '')">
     <include file="$(dirname)/$(arg arm)_bringup.launch">
       <arg name="arm" value="$(arg arm)"/>
       <arg name="arm_model" value="$(arg arm_model)"/>
       <arg name="controller" value="$(arg controller)"/>
       <arg name="fixed_frame" value="$(arg fixed_frame)"/>
-      <arg name="with_rviz" value="$(arg with_rviz)"/>
     </include>
+  </group>
+  <group unless="$(eval arg('vehicle') == '')">
+    <include file="$(dirname)/$(arg arm)_combined_bringup.launch">
+      <arg name="arm" value="$(arg arm)"/>
+      <arg name="arm_model" value="$(arg arm_model)"/>
+      <arg name="controller" value="$(arg controller)"/>
+      <arg name="fixed_frame" value="$(arg fixed_frame)"/>
+      <arg name="vehicle" value="$(arg vehicle)"/>
+      <arg name="vehicle_model" value="$(arg vehicle_model)"/>
+    </include>
+  </group>
+
+  <!-- send fake joint values -->
+  <group if="$(eval arg('controller') == 'fake')">
+    <node name="arm_robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+    <node name="arm_joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+      <rosparam param="source_list">["/whi_moveit_cpp_bridge/fake_controller_joint_states"]</rosparam>
+    </node>
   </group>
 
   <!-- hardware interface -->
   <node name="whi_moveit_cpp_bridge" pkg="whi_moveit_cpp_bridge" type="whi_moveit_cpp_bridge_node" output="screen"/>
+
+  <!-- launch rviz -->
+  <group if="$(arg with_rviz)">
+    <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+      args="-d $(dirname)/rviz_config.rviz" output="screen"/>
+  </group>
 </launch>

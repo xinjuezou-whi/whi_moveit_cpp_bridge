@@ -3,12 +3,12 @@
   <!-- argument -->
   <arg name="arm" default="ur"/>
   <arg name="arm_model" default="10e"/>
-  <arg name="vehicle_model" default="L1_ur_combined_diff"/>
+  <arg name="vehicle" default="L1"/>
+  <arg name="vehicle_model" default="differential"/>
   <arg name="controller" default="fake"/>
-  <arg name="with_rviz" default="true"/>
   <!-- urdf and srdf file -->
   <arg name="moveit_config_path" value="$(eval '$(find ' + arg('arm') + str(arg('arm_model')) + '_moveit_config)')"/>
-  <arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_$(arg vehicle_model).urdf.xacro"/>
+  <arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_$(arg vehicle)_$(arg vehicle_model)_$(arg arm)_$(arg arm_model).urdf.xacro"/>
   <arg name="srdf_file" default="$(arg moveit_config_path)config/$(arg arm)$(arg arm_model)_combined.srdf"/>
   <arg name="fixed_frame" default="world"/>
   <arg name="base_frame" default="base_link"/>
@@ -35,11 +35,6 @@
 
   <!-- If needed, broadcast static tf for robot root -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 $(arg fixed_frame) $(arg base_frame)" />
-  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 ur10e_wrist_3_link camera" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 $(arg arm)$(arg arm_model)_wrist_3_link camera" />
 
-  <!-- launch rviz -->
-  <group if="$(arg with_rviz)">
-    <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
-      args="-d $(find whi_moveit_cpp_bridge)/launch/rviz_config.rviz" output="screen"/>
-  </group>
 </launch>
