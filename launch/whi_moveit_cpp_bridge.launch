@@ -5,7 +5,7 @@
   <arg name="arm_model" default="crb7"/>
   <arg name="controller" default="fake"/>
   <arg name="vehicle" default=""/>
-  <arg name="vehicle_model" default="differential"/>
+  <arg name="vehicle_model" default=""/>
   <arg name="fixed_frame" default="world"/>
   <arg name="with_rviz" default="true"/>
 
