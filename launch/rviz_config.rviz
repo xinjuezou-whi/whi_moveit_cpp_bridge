@@ -74,7 +74,7 @@ Visualization Manager:
       Enabled: true
       Move Group Namespace: ""
       Name: PlanningScene
-      Planning Scene Topic: /monitored_planning_scene
+      Planning Scene Topic: /whi_moveit_cpp_bridge/monitored_planning_scene
       Robot Description: robot_description
       Scene Geometry:
         Scene Alpha: 0.8999999761581421
@@ -91,45 +91,57 @@ Visualization Manager:
           Expand Link Details: false
           Expand Tree: false
           Link Tree Style: Links in Alphabetic Order
-          chin_link_0:
+          base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          base_link_inertia:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          chin_link_1:
+          flange:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          forearm_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          chin_link_2:
+          shoulder_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          chin_link_3:
+          tool0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          upper_arm_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          chin_link_4:
+          wrist_1_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          chin_link_5:
+          wrist_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          chin_link_6:
+          wrist_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          chin_link_7:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
         Robot Alpha: 1
         Show Robot Collision: false
         Show Robot Visual: true
@@ -152,7 +164,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /rviz_visual_tools
+      Marker Topic: /whi_moveit_cpp_bridge/display_contacts
       Name: MarkerArray
       Namespaces:
         {}
@@ -168,45 +180,57 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        chin_link_0:
+        base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link_inertia:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        chin_link_1:
+        flange:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        forearm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        chin_link_2:
+        shoulder_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        chin_link_3:
+        tool0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_arm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        chin_link_4:
+        wrist_1_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        chin_link_5:
+        wrist_2_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        chin_link_6:
+        wrist_3_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        chin_link_7:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
       Loop Animation: false
       Name: Trajectory
       Robot Alpha: 0.5
@@ -217,7 +241,7 @@ Visualization Manager:
       Show Trail: false
       State Display Time: 0.05 s
       Trail Step Size: 1
-      Trajectory Topic: /whi_moveit_cpp_demo/ompl/display_planned_path
+      Trajectory Topic: /whi_moveit_cpp_bridge/display_planned_path
       Use Sim Time: false
       Value: true
   Enabled: true

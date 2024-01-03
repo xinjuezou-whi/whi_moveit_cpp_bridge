@@ -15,7 +15,7 @@
   <rosparam command="load" file="$(arg moveit_config_path)config/kinematics.yaml"/>
 
   <!-- Planning Pipeline -->
-  <include ns="/whi_moveit_cpp_bridge/ompl" file="$(arg moveit_config_path)launch/ompl_planning_pipeline.launch.xml"/>
+  <include ns="whi_moveit_cpp_bridge/ompl" file="$(arg moveit_config_path)launch/ompl_planning_pipeline.launch.xml"/>
 
   <!-- Trajectory execution  -->
   <include ns="whi_moveit_cpp_bridge" file="$(arg moveit_config_path)launch/trajectory_execution.launch.xml">
