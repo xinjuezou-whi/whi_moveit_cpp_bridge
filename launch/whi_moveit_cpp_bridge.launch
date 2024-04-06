@@ -38,9 +38,6 @@
 
   <!-- send fake joint values -->
   <group if="$(eval arg('controller') == 'fake')">
-    <node name="arm_robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
-      <param name="tf_prefix" value="$(arg robot_name)"/>
-    </node>
     <node name="arm_joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
       <rosparam param="source_list">["whi_moveit_cpp_bridge/fake_controller_joint_states"]</rosparam>
     </node>
