@@ -19,6 +19,9 @@ All text above must be included in any redistribution.
 #include "whi_moveit_cpp_bridge/whi_moveit_cpp_bridge.h"
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <std_srvs/Trigger.h>
+
+#include <thread>
 
 namespace whi_moveit_cpp_bridge
 {
@@ -30,6 +33,23 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::init()
     {
+        // arm ready service client
+        double waitDuration;
+        node_handle_->param("wait_duration", waitDuration, 1.0);
+        node_handle_ns_free_ = std::make_shared<ros::NodeHandle>();
+        std::string serviceReady;
+        node_handle_->param("arm_ready_service", serviceReady, std::string("arm_ready"));
+        if (!serviceReady.empty())
+        {
+            client_arm_ready_ = std::make_unique<ros::ServiceClient>(
+                node_handle_ns_free_->serviceClient<std_srvs::Trigger>(serviceReady));
+        }
+        while (!client_arm_ready_->waitForExistence(ros::Duration(waitDuration)))
+        {
+            ROS_WARN_STREAM("wait for arm ready...");
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(waitDuration * 1000.0)));
+        }
+
         // params
         std::string planningGroup;
         node_handle_->param("planning_group", planningGroup, std::string("whi_arm"));
