@@ -11,7 +11,7 @@
   <arg name="with_rviz" default="true"/>
 
   <!-- params -->
-  <rosparam file="$(find whi_moveit_cpp_bridge)/config/config_$(arg arm)_$(arg arm_model).yaml" command="load" subst_value="true"/>
+  <rosparam file="$(find whi_moveit_cpp_bridge)/config/config_$(arg arm)_$(arg arm_model).yaml" command="load"/>
   <!-- Specify the config files to use -->
   <rosparam ns="whi_moveit_cpp_bridge" command="load" file="$(find whi_moveit_cpp_bridge)/config/moveit_cpp.yaml"/>
 
