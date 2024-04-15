@@ -51,6 +51,7 @@ namespace whi_moveit_cpp_bridge
         }
 
         // params
+        node_handle_->param("tf_prefix", tf_prefix_, std::string(""));
         std::string planningGroup;
         node_handle_->param("planning_group", planningGroup, std::string("whi_arm"));
         loadInitPlanParams();
@@ -115,7 +116,8 @@ namespace whi_moveit_cpp_bridge
             auto state = *startState;
 
             geometry_msgs::PoseStamped targetPose = Pose.tcp_pose;
-            std::string armRoot = robot_model_->getRootLinkName();
+            std::string armRoot(tf_prefix_.empty() ? "" : tf_prefix_ + "/");
+            armRoot += robot_model_->getRootLinkName();
             if (Pose.tcp_pose.header.frame_id != armRoot &&
                 Pose.tcp_pose.header.frame_id != "world" && !Pose.tcp_pose.header.frame_id.empty())
             {

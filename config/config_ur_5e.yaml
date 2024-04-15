@@ -1,4 +1,5 @@
 whi_moveit_cpp_bridge:
+  tf_prefix: "$(arg robot_name)"
   planning_group: manipulator
   max_ik_try_count: 30
   tcp_pose_service: tcp_pose

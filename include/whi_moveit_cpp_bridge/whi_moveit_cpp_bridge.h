@@ -64,5 +64,6 @@ namespace whi_moveit_cpp_bridge
         int max_ik_try_cout_{ 3 };
         int motion_state_{ whi_interfaces::WhiMotionState::STA_STANDBY };
         std::unique_ptr<ros::ServiceClient> client_arm_ready_{ nullptr };
+        std::string tf_prefix_;
 	};
 } // namespace whi_moveit_cpp_bridge
