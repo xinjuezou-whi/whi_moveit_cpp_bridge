@@ -99,7 +99,7 @@ namespace whi_moveit_cpp_bridge
 
         // subscribe to arm motion state
         std::string stateTopic;
-        node_handle_->param("motion_state_topic", stateTopic, std::string("arm_moton_state"));
+        node_handle_->param("arm_state_topic", stateTopic, std::string("arm_moton_state"));
         motion_state_sub_ = std::make_unique<ros::Subscriber>(
 		    node_handle_->subscribe<whi_interfaces::WhiMotionState>(stateTopic, 10,
 		    std::bind(&MoveItCppBridge::callbackMotionState, this, std::placeholders::_1)));

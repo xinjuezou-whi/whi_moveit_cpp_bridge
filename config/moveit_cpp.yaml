@@ -18,5 +18,5 @@ plan_request_params:
   max_acceleration_scaling_factor: 1.0
 
 # node params
-arm_ready_service: whi_ur_robot_driver_bridge/arm_ready
+arm_ready_service: /whi/ur_combined/whi_ur_robot_driver_bridge/arm_ready
 wait_duration: 1.0 # second

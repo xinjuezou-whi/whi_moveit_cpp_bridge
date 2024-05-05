@@ -4,4 +4,4 @@ whi_moveit_cpp_bridge:
   max_ik_try_count: 30
   tcp_pose_service: tcp_pose
   tcp_pose_topic: tcp_pose
-  motion_state_topic: arm_motion_state
+  arm_state_topic: /whi/ur_combined/whi_ur_robot_driver_bridge/arm_motion_state
