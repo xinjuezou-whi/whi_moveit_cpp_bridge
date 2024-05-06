@@ -36,6 +36,7 @@ namespace whi_moveit_cpp_bridge
     {
         // arm ready service client
         node_handle_->param("wait_duration", wait_duration_, 1.0);
+        node_handle_->param("max_try_count", max_try_count_, 10);
         node_handle_ns_free_ = std::make_shared<ros::NodeHandle>();
         std::string serviceReady;
         node_handle_->param("arm_ready_service", serviceReady, std::string("arm_ready"));
@@ -114,11 +115,21 @@ namespace whi_moveit_cpp_bridge
 
     bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
     {
+        int tryCount = 0;
         std_srvs::Trigger srv;
         while (!client_arm_ready_->call(srv))
         {
-            ROS_WARN_STREAM("wait for arm ready...");
-            std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+            if (++tryCount > max_try_count_)
+            {
+                ROS_ERROR_STREAM("failed to call TCP pose service, arm is not ready");
+
+                return false;
+            }
+            else
+            {
+                ROS_WARN_STREAM("wait for arm ready... in " << this->try_duration_ << " seconds");
+                std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+            }
         }
 
         auto startState = moveit_cpp_->getCurrentState();

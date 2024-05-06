@@ -66,5 +66,6 @@ namespace whi_moveit_cpp_bridge
         std::unique_ptr<ros::ServiceClient> client_arm_ready_{ nullptr };
         std::string tf_prefix_;
         double wait_duration_{ 1.0 };
+        int max_try_count_{ 10 };
 	};
 } // namespace whi_moveit_cpp_bridge
