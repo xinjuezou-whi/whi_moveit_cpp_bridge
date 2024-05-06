@@ -65,5 +65,6 @@ namespace whi_moveit_cpp_bridge
         int motion_state_{ whi_interfaces::WhiMotionState::STA_STANDBY };
         std::unique_ptr<ros::ServiceClient> client_arm_ready_{ nullptr };
         std::string tf_prefix_;
+        double wait_duration_{ 1.0 };
 	};
 } // namespace whi_moveit_cpp_bridge

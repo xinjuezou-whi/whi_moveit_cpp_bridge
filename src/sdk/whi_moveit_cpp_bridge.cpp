@@ -35,8 +35,7 @@ namespace whi_moveit_cpp_bridge
     void MoveItCppBridge::init()
     {
         // arm ready service client
-        double waitDuration;
-        node_handle_->param("wait_duration", waitDuration, 1.0);
+        node_handle_->param("wait_duration", wait_duration_, 1.0);
         node_handle_ns_free_ = std::make_shared<ros::NodeHandle>();
         std::string serviceReady;
         node_handle_->param("arm_ready_service", serviceReady, std::string("arm_ready"));
@@ -45,10 +44,18 @@ namespace whi_moveit_cpp_bridge
             client_arm_ready_ = std::make_unique<ros::ServiceClient>(
                 node_handle_ns_free_->serviceClient<std_srvs::Trigger>(serviceReady));
         }
-        while (!client_arm_ready_->waitForExistence(ros::Duration(waitDuration)))
+        // wait for service active
+        while (!client_arm_ready_->waitForExistence(ros::Duration(wait_duration_)))
+        {
+            ROS_WARN_STREAM("wait for arm service...");
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+        }
+        // wait for arm ready
+        std_srvs::Trigger srv;
+        while (!client_arm_ready_->call(srv))
         {
             ROS_WARN_STREAM("wait for arm ready...");
-            std::this_thread::sleep_for(std::chrono::milliseconds(int(waitDuration * 1000.0)));
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
         }
 
         // params
@@ -107,6 +114,13 @@ namespace whi_moveit_cpp_bridge
 
     bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
     {
+        std_srvs::Trigger srv;
+        while (!client_arm_ready_->call(srv))
+        {
+            ROS_WARN_STREAM("wait for arm ready...");
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+        }
+
         auto startState = moveit_cpp_->getCurrentState();
         planning_components_->setStartStateToCurrentState();
 
