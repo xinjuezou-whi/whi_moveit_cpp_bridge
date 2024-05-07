@@ -34,32 +34,47 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::init()
     {
-        // arm ready service client
-        node_handle_->param("wait_duration", wait_duration_, 1.0);
-        node_handle_->param("max_try_count", max_try_count_, 10);
-        node_handle_ns_free_ = std::make_shared<ros::NodeHandle>();
-        std::string serviceReady;
-        node_handle_->param("arm_ready_service", serviceReady, std::string("arm_ready"));
-        if (!serviceReady.empty())
+        // check if controller is fake
+        XmlRpc::XmlRpcValue controllerList;
+        node_handle_->getParam("controller_list", controllerList);
+        for (int i = 0; i < controllerList.size(); ++i)
         {
-            client_arm_ready_ = std::make_unique<ros::ServiceClient>(
-                node_handle_ns_free_->serviceClient<std_srvs::Trigger>(serviceReady));
-        }
-        // wait for service active
-        while (!client_arm_ready_->waitForExistence(ros::Duration(wait_duration_)))
-        {
-            ROS_WARN_STREAM("wait for arm service...");
-            std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
-        }
-        // wait for arm ready
-        std_srvs::Trigger srv;
-        while (!client_arm_ready_->call(srv))
-        {
-            ROS_WARN_STREAM("wait for arm ready...");
-            std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+            if (static_cast<std::string>(controllerList[i]["name"]).find("fake") != std::string::npos)
+            {
+                is_fake_controller_ = true;
+                break;
+            }
         }
 
-        // params
+        // initiate arm ready service client if not fake
+        if (!is_fake_controller_)
+        {
+            node_handle_->param("wait_duration", wait_duration_, 1.0);
+            node_handle_->param("max_try_count", max_try_count_, 10);
+            node_handle_ns_free_ = std::make_shared<ros::NodeHandle>();
+            std::string serviceReady;
+            node_handle_->param("arm_ready_service", serviceReady, std::string("arm_ready"));
+            if (!serviceReady.empty())
+            {
+                client_arm_ready_ = std::make_unique<ros::ServiceClient>(
+                    node_handle_ns_free_->serviceClient<std_srvs::Trigger>(serviceReady));
+            }
+            // wait for service active
+            while (!client_arm_ready_->waitForExistence(ros::Duration(wait_duration_)))
+            {
+                ROS_WARN_STREAM("wait for arm service...");
+                std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+            }
+            // wait for arm ready
+            std_srvs::Trigger srv;
+            while (!client_arm_ready_->call(srv))
+            {
+                ROS_WARN_STREAM("wait for arm ready...");
+                std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+            }
+        }
+
+        // other params
         node_handle_->param("tf_prefix", tf_prefix_, std::string(""));
         std::string planningGroup;
         node_handle_->param("planning_group", planningGroup, std::string("whi_arm"));
@@ -117,7 +132,7 @@ namespace whi_moveit_cpp_bridge
     {
         int tryCount = 0;
         std_srvs::Trigger srv;
-        while (!client_arm_ready_->call(srv))
+        while (!is_fake_controller_ && !client_arm_ready_->call(srv))
         {
             if (++tryCount > max_try_count_)
             {
@@ -127,7 +142,7 @@ namespace whi_moveit_cpp_bridge
             }
             else
             {
-                ROS_WARN_STREAM("wait for arm ready... in " << this->try_duration_ << " seconds");
+                ROS_WARN_STREAM("wait for arm ready... in " << max_try_count_ << " seconds");
                 std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
             }
         }
