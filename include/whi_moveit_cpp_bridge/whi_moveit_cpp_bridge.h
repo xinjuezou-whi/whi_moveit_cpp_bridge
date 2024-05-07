@@ -67,6 +67,5 @@ namespace whi_moveit_cpp_bridge
         std::string tf_prefix_;
         double wait_duration_{ 1.0 };
         int max_try_count_{ 10 };
-        bool is_fake_controller_{ false };
 	};
 } // namespace whi_moveit_cpp_bridge

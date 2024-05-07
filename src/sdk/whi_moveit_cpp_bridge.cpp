@@ -35,19 +35,20 @@ namespace whi_moveit_cpp_bridge
     void MoveItCppBridge::init()
     {
         // check if controller is fake
+        bool isFake = false;
         XmlRpc::XmlRpcValue controllerList;
         node_handle_->getParam("controller_list", controllerList);
         for (int i = 0; i < controllerList.size(); ++i)
         {
             if (static_cast<std::string>(controllerList[i]["name"]).find("fake") != std::string::npos)
             {
-                is_fake_controller_ = true;
+                isFake = true;
                 break;
             }
         }
 
         // initiate arm ready service client if not fake
-        if (!is_fake_controller_)
+        if (!isFake)
         {
             node_handle_->param("wait_duration", wait_duration_, 1.0);
             node_handle_->param("max_try_count", max_try_count_, 10);
@@ -132,7 +133,7 @@ namespace whi_moveit_cpp_bridge
     {
         int tryCount = 0;
         std_srvs::Trigger srv;
-        while (!is_fake_controller_ && !client_arm_ready_->call(srv))
+        while (client_arm_ready_ && !client_arm_ready_->call(srv))
         {
             if (++tryCount > max_try_count_)
             {
