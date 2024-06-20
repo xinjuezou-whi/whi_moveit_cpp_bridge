@@ -1,7 +1,7 @@
 whi_moveit_cpp_bridge:
   tf_prefix: "$(arg robot_name)"
   planning_group: chin_crb7
-  max_ik_try_count: 3
+  eef_link: chin_link_6
   tcp_pose_service: tcp_pose
   tcp_pose_topic: tcp_pose
   arm_state_topic: arm_motion_state

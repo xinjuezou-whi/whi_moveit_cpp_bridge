@@ -55,17 +55,19 @@ namespace whi_moveit_cpp_bridge
         std::shared_ptr<ros::NodeHandle> node_handle_ns_free_{ nullptr };
         std::shared_ptr<moveit_cpp::MoveItCpp> moveit_cpp_{ nullptr };
         std::shared_ptr<moveit_cpp::PlanningComponent> planning_components_{ nullptr };
+        std::string planning_group_{ "whi_arm" };
         moveit::core::RobotModelConstPtr robot_model_{ nullptr };
         const moveit::core::JointModelGroup* joint_model_group_{ nullptr };
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
         std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };
         moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;
-        int max_ik_try_cout_{ 3 };
         int motion_state_{ whi_interfaces::WhiMotionState::STA_STANDBY };
         std::unique_ptr<ros::ServiceClient> client_arm_ready_{ nullptr };
         std::string tf_prefix_;
         double wait_duration_{ 1.0 };
         int max_try_count_{ 10 };
+        double cartesian_fraction_{ 1.0 };
+        std::string eef_link_{ "eef" };
 	};
 } // namespace whi_moveit_cpp_bridge

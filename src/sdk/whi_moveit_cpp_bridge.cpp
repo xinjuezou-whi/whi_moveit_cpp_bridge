@@ -20,6 +20,8 @@ All text above must be included in any redistribution.
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <std_srvs/Trigger.h>
+#include <tf2_eigen/tf2_eigen.h>
+#include <moveit/trajectory_processing/iterative_time_parameterization.h>
 
 #include <thread>
 #include <iterator>
@@ -77,10 +79,10 @@ namespace whi_moveit_cpp_bridge
 
         // other params
         node_handle_->param("tf_prefix", tf_prefix_, std::string(""));
-        std::string planningGroup;
-        node_handle_->param("planning_group", planningGroup, std::string("whi_arm"));
+        node_handle_->param("planning_group", planning_group_, std::string("whi_arm"));
         loadInitPlanParams();
-        node_handle_->param("max_ik_try_count", max_ik_try_cout_, 3);
+        node_handle_->param("cartesian_fraction", cartesian_fraction_, 1.0);
+        node_handle_->param("eef_link", eef_link_, std::string("eef"));
 
         try
         {
@@ -88,9 +90,9 @@ namespace whi_moveit_cpp_bridge
             if (moveit_cpp_)
             {
                 moveit_cpp_->getPlanningSceneMonitorNonConst()->providePlanningSceneService();
-                planning_components_ = std::make_shared<moveit_cpp::PlanningComponent>(planningGroup, moveit_cpp_);
+                planning_components_ = std::make_shared<moveit_cpp::PlanningComponent>(planning_group_, moveit_cpp_);
                 robot_model_ = moveit_cpp_->getRobotModel();
-                joint_model_group_ = robot_model_->getJointModelGroup(planningGroup);
+                joint_model_group_ = robot_model_->getJointModelGroup(planning_group_);
                 planning_components_->setStartStateToCurrentState();
             }
         }
@@ -151,8 +153,7 @@ namespace whi_moveit_cpp_bridge
         auto startState = moveit_cpp_->getCurrentState();
         planning_components_->setStartStateToCurrentState();
 
-        bool foundIk = true;
-
+        bool foundIk = false;
         if (Pose.pose_group.empty())
         {
             auto state = *startState;
@@ -181,54 +182,114 @@ namespace whi_moveit_cpp_bridge
 #endif
             }
 
-            int tryCount = 0;
-            do
+            if (Pose.is_cartesian)
             {
-                foundIk = state.setFromIK(joint_model_group_, targetPose.pose);
-                ++tryCount;
-            } while (tryCount < max_ik_try_cout_ && !foundIk);
+                // convert from geometry_msgs::Pose to Eigen::Isometry3d
+                Eigen::Isometry3d target;
+                tf2::fromMsg(targetPose.pose, target);
 
-            if (foundIk)
-            {
-                // depending on the planning problem MoveIt chooses between
-                // ``joint space`` and ``cartesian space`` for problem representation.
-                // Setting the planner group parameter ``enforce_joint_model_state_space:true`` in
-                // the ompl_planning.yaml file enforces the use of ``joint space`` for all plans.
-                //
-                // by default planning requests with orientation path constraints
-                // are sampled in ``cartesian space`` so that invoking IK serves as a
-                // generative sampler.
-                //
-                // by enforcing ``joint space`` the planning process will use rejection
-                // sampling to find valid requests. Please note that this might
-                // increase planning time considerably.
-                moveit_msgs::Constraints constraints;
-                // // first let the pose of contraint meet the target pose
-                // std::vector<double> currentJointPositions;
-                // state.copyJointGroupPositions(joint_model_group_, currentJointPositions);
-                // auto jointsName = joint_model_group_->getJointModelNames();
-                constraints.joint_constraints = Pose.joint_constraints;
-                // for (auto& it : constraints.joint_constraints)
-                // {
-                //     auto found = std::find(jointsName.begin(), jointsName.end(), it.joint_name);
-                //     if (found != jointsName.end())
-                //     {
-                //         int index = std::distance(jointsName.begin(), found);
-                //         it.position = currentJointPositions[index];
-                //     }
-                // }
-                // // then set the constraints
-                planning_components_->setPathConstraints(constraints);
+                // compute the Cartesian path
+                const moveit::core::LinkModel* linkModel = joint_model_group_->getLinkModel(eef_link_);
+                std::vector<moveit::core::RobotStatePtr> trajState;
+                tryCount = 0;
+                double fraction = 0.0;
+                do
+                {
+                    fraction = state.computeCartesianPath(joint_model_group_, trajState, linkModel, target,
+                        true, 0.01, 0.0);
+#ifndef DEBUG
+                    std::cout << "Cartersian fraction " << fraction << ", trajectory size " <<
+                        trajState.size() << std::endl;
+#endif
+                } while (++tryCount < max_try_count_ && fraction < cartesian_fraction_);
 
-                planning_components_->setGoal(state);
+                if (fraction - cartesian_fraction_ >= 0.0)
+                {
+                    // get the robot_trajectory::RobotTrajectory from RobotStatePtr
+                    robot_trajectory::RobotTrajectoryPtr traj = std::make_shared<robot_trajectory::RobotTrajectory>(
+                        robot_model_, planning_group_);
+                    for (const moveit::core::RobotStatePtr& it : trajState)
+                    {
+                        traj->addSuffixWayPoint(it, 0.0);
+                    }
+                    // apply the velocity and acceleration scale
+                    trajectory_processing::IterativeParabolicTimeParameterization iptp;
+                    if (iptp.computeTimeStamps(*traj, Pose.velocity_scale, Pose.acceleration_scale))
+                    {
+                        // execute path
+                        bool res = moveit_cpp_->execute(planning_group_, traj);
+                        if (motion_state_ == whi_interfaces::WhiMotionState::STA_FAULT)
+                        {
+                            motion_state_ = whi_interfaces::WhiMotionState::STA_STANDBY;
+                            res = false;
+
+                            ROS_ERROR_STREAM("protective stop encountered");
+                        }
+                        return res;
+                    }
+                    else
+                    {
+                        ROS_WARN_STREAM("failed to apply time parameters");
+                        return false;
+                    }
+                }
+                else
+                {
+                    ROS_WARN_STREAM("failed to find solution");
+                    return false;
+                }
             }
             else
             {
-                ROS_ERROR_STREAM("failed to find the IK solution");
+                tryCount = 0;
+                do
+                {
+                    foundIk = state.setFromIK(joint_model_group_, targetPose.pose);
+                } while (++tryCount < max_try_count_ && !foundIk);
+
+                if (foundIk)
+                {
+                    // depending on the planning problem MoveIt chooses between
+                    // ``joint space`` and ``cartesian space`` for problem representation.
+                    // Setting the planner group parameter ``enforce_joint_model_state_space:true`` in
+                    // the ompl_planning.yaml file enforces the use of ``joint space`` for all plans.
+                    //
+                    // by default planning requests with orientation path constraints
+                    // are sampled in ``cartesian space`` so that invoking IK serves as a
+                    // generative sampler.
+                    //
+                    // by enforcing ``joint space`` the planning process will use rejection
+                    // sampling to find valid requests. Please note that this might
+                    // increase planning time considerably.
+                    moveit_msgs::Constraints constraints;
+                    // // first let the pose of contraint meet the target pose
+                    // std::vector<double> currentJointPositions;
+                    // state.copyJointGroupPositions(joint_model_group_, currentJointPositions);
+                    // auto jointsName = joint_model_group_->getJointModelNames();
+                    constraints.joint_constraints = Pose.joint_constraints;
+                    // for (auto& it : constraints.joint_constraints)
+                    // {
+                    //     auto found = std::find(jointsName.begin(), jointsName.end(), it.joint_name);
+                    //     if (found != jointsName.end())
+                    //     {
+                    //         int index = std::distance(jointsName.begin(), found);
+                    //         it.position = currentJointPositions[index];
+                    //     }
+                    // }
+                    // // then set the constraints
+                    planning_components_->setPathConstraints(constraints);
+
+                    planning_components_->setGoal(state);
+                }
+                else
+                {
+                    ROS_ERROR_STREAM("failed to find the IK solution");
+                }
             }
         }
         else
         {
+            foundIk = true;
             planning_components_->setGoal(Pose.pose_group);
         }
 
@@ -264,7 +325,7 @@ namespace whi_moveit_cpp_bridge
         }
         else
         {
-            ROS_WARN_STREAM("failed to find IK solution");
+            ROS_WARN_STREAM("failed to find solution");
             return false;
         }
     }
