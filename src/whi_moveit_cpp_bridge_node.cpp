@@ -35,8 +35,8 @@ void signalHandler(int Signal)
 int main(int argc, char** argv)
 {
 	/// node version and copyright announcement
-	std::cout << "\nWHI MoveItCpp bridge VERSION 00.09.6" << std::endl;
-	std::cout << "Copyright © 2023-2024 Wheel Hub Intelligent Co.,Ltd. All rights reserved\n" << std::endl;
+	std::cout << "\nWHI MoveItCpp bridge VERSION 00.09.7" << std::endl;
+	std::cout << "Copyright © 2023-2025 Wheel Hub Intelligent Co.,Ltd. All rights reserved\n" << std::endl;
 
 	/// ros infrastructure
     const std::string nodeName("whi_moveit_cpp_bridge"); 

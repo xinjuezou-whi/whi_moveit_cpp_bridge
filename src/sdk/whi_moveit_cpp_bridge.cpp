@@ -22,6 +22,7 @@ All text above must be included in any redistribution.
 #include <std_srvs/Trigger.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
+#include <std_msgs/Bool.h>
 
 #include <thread>
 #include <iterator>
@@ -48,6 +49,8 @@ namespace whi_moveit_cpp_bridge
                 break;
             }
         }
+        state_pub_ = std::make_unique<ros::Publisher>(
+        	node_handle_->advertise<std_msgs::Bool>("moveit_cpp_state", 10));
 
         // initiate arm ready service client if not fake
         if (!isFake)
@@ -82,6 +85,7 @@ namespace whi_moveit_cpp_bridge
         node_handle_->param("planning_group", planning_group_, std::string("whi_arm"));
         loadInitPlanParams();
         node_handle_->param("cartesian_fraction", cartesian_fraction_, 1.0);
+        node_handle_->param("cartesian_traj_max_step", cartesian_traj_max_step_, 0.01);
         node_handle_->param("eef_link", eef_link_, std::string("eef"));
 
         try
@@ -129,6 +133,10 @@ namespace whi_moveit_cpp_bridge
         motion_state_sub_ = std::make_unique<ros::Subscriber>(
 		    node_handle_->subscribe<whi_interfaces::WhiMotionState>(stateTopic, 10,
 		    std::bind(&MoveItCppBridge::callbackMotionState, this, std::placeholders::_1)));
+        // publish state for notifying nodes that depend on me
+        std_msgs::Bool msg;
+        msg.data = true;
+        state_pub_->publish(msg);
     }
 
     bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
@@ -156,8 +164,6 @@ namespace whi_moveit_cpp_bridge
         bool foundIk = false;
         if (Pose.pose_group.empty())
         {
-            auto state = *startState;
-
             geometry_msgs::PoseStamped targetPose = Pose.tcp_pose;
             std::string armRoot(tf_prefix_.empty() ? "" : tf_prefix_ + "/");
             armRoot += robot_model_->getRootLinkName();
@@ -190,52 +196,60 @@ namespace whi_moveit_cpp_bridge
 
                 // compute the Cartesian path
                 const moveit::core::LinkModel* linkModel = joint_model_group_->getLinkModel(eef_link_);
-                std::vector<moveit::core::RobotStatePtr> trajState;
-                tryCount = 0;
-                double fraction = 0.0;
-                do
+                if (linkModel != nullptr)
                 {
-                    fraction = state.computeCartesianPath(joint_model_group_, trajState, linkModel, target,
-                        true, 0.01, 0.0);
-#ifndef DEBUG
-                    std::cout << "Cartersian fraction " << fraction << ", trajectory size " <<
-                        trajState.size() << std::endl;
-#endif
-                } while (++tryCount < max_try_count_ && fraction < cartesian_fraction_);
+                    std::vector<moveit::core::RobotStatePtr> trajState;
+                    tryCount = 0;
+                    double fraction = 0.0;
+                    do
+                    {
+                        fraction = startState->computeCartesianPath(joint_model_group_, trajState, linkModel, target,
+                            true, cartesian_traj_max_step_, 0.0);
+    #ifndef DEBUG
+                        std::cout << "Cartersian fraction " << fraction << ", trajectory size " <<
+                            trajState.size() << std::endl;
+    #endif
+                    } while (++tryCount < max_try_count_ && fraction < cartesian_fraction_);
 
-                if (fraction - cartesian_fraction_ >= 0.0)
-                {
-                    // get the robot_trajectory::RobotTrajectory from RobotStatePtr
-                    robot_trajectory::RobotTrajectoryPtr traj = std::make_shared<robot_trajectory::RobotTrajectory>(
-                        robot_model_, planning_group_);
-                    for (const moveit::core::RobotStatePtr& it : trajState)
+                    if (fraction - cartesian_fraction_ >= 0.0)
                     {
-                        traj->addSuffixWayPoint(it, 0.0);
-                    }
-                    // apply the velocity and acceleration scale
-                    trajectory_processing::IterativeParabolicTimeParameterization iptp;
-                    if (iptp.computeTimeStamps(*traj, Pose.velocity_scale, Pose.acceleration_scale))
-                    {
-                        // execute path
-                        bool res = moveit_cpp_->execute(planning_group_, traj);
-                        if (motion_state_ == whi_interfaces::WhiMotionState::STA_FAULT)
+                        // get the robot_trajectory::RobotTrajectory from RobotStatePtr
+                        robot_trajectory::RobotTrajectoryPtr traj = std::make_shared<robot_trajectory::RobotTrajectory>(
+                            robot_model_, planning_group_);
+                        for (const moveit::core::RobotStatePtr& it : trajState)
                         {
-                            motion_state_ = whi_interfaces::WhiMotionState::STA_STANDBY;
-                            res = false;
-
-                            ROS_ERROR_STREAM("protective stop encountered");
+                            traj->addSuffixWayPoint(it, 0.0);
                         }
-                        return res;
+                        // apply the velocity and acceleration scale
+                        trajectory_processing::IterativeParabolicTimeParameterization iptp;
+                        if (iptp.computeTimeStamps(*traj, Pose.velocity_scale, Pose.acceleration_scale))
+                        {
+                            // execute path
+                            bool res = moveit_cpp_->execute(planning_group_, traj);
+                            if (motion_state_ == whi_interfaces::WhiMotionState::STA_FAULT)
+                            {
+                                motion_state_ = whi_interfaces::WhiMotionState::STA_STANDBY;
+                                res = false;
+
+                                ROS_ERROR_STREAM("protective stop encountered");
+                            }
+                            return res;
+                        }
+                        else
+                        {
+                            ROS_WARN_STREAM("failed to apply time parameters");
+                            return false;
+                        }
                     }
                     else
                     {
-                        ROS_WARN_STREAM("failed to apply time parameters");
+                        ROS_WARN_STREAM("failed to find solution");
                         return false;
                     }
                 }
                 else
                 {
-                    ROS_WARN_STREAM("failed to find solution");
+                    ROS_WARN_STREAM("link " << eef_link_ << " doesn't exit, please check the config!");
                     return false;
                 }
             }
@@ -244,7 +258,7 @@ namespace whi_moveit_cpp_bridge
                 tryCount = 0;
                 do
                 {
-                    foundIk = state.setFromIK(joint_model_group_, targetPose.pose);
+                    foundIk = startState->setFromIK(joint_model_group_, targetPose.pose);
                 } while (++tryCount < max_try_count_ && !foundIk);
 
                 if (foundIk)
@@ -264,7 +278,7 @@ namespace whi_moveit_cpp_bridge
                     moveit_msgs::Constraints constraints;
                     // // first let the pose of contraint meet the target pose
                     // std::vector<double> currentJointPositions;
-                    // state.copyJointGroupPositions(joint_model_group_, currentJointPositions);
+                    // startState->copyJointGroupPositions(joint_model_group_, currentJointPositions);
                     // auto jointsName = joint_model_group_->getJointModelNames();
                     constraints.joint_constraints = Pose.joint_constraints;
                     // for (auto& it : constraints.joint_constraints)
@@ -279,7 +293,7 @@ namespace whi_moveit_cpp_bridge
                     // // then set the constraints
                     planning_components_->setPathConstraints(constraints);
 
-                    planning_components_->setGoal(state);
+                    planning_components_->setGoal(*startState);
                 }
                 else
                 {

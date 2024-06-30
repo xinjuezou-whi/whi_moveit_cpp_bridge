@@ -61,6 +61,7 @@ namespace whi_moveit_cpp_bridge
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
         std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };
+        std::unique_ptr<ros::Publisher> state_pub_{ nullptr };
         moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;
         int motion_state_{ whi_interfaces::WhiMotionState::STA_STANDBY };
         std::unique_ptr<ros::ServiceClient> client_arm_ready_{ nullptr };
@@ -68,6 +69,7 @@ namespace whi_moveit_cpp_bridge
         double wait_duration_{ 1.0 };
         int max_try_count_{ 10 };
         double cartesian_fraction_{ 1.0 };
+        double cartesian_traj_max_step_{ 0.01 };
         std::string eef_link_{ "eef" };
 	};
 } // namespace whi_moveit_cpp_bridge
