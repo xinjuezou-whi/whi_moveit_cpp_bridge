@@ -41,7 +41,7 @@ namespace whi_moveit_cpp_bridge
         void init();
         bool execute(const whi_interfaces::WhiTcpPose& Pose);
         void callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg);
-        void callbackMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
+        void callbackArmMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
         bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
             whi_interfaces::WhiSrvTcpPose::Response& Res);
         bool trans2TargetFrame(const std::string& DstFrame,

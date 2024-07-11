@@ -4,4 +4,4 @@ whi_moveit_cpp_bridge:
   eef_link: wrist_3_link
   tcp_pose_service: tcp_pose
   tcp_pose_topic: tcp_pose
-  arm_state_topic: /whi/ur_combined/whi_ur_robot_driver_bridge/arm_motion_state
+  arm_state_topic: whi_ur_robot_driver_bridge/arm_motion_state # /whi/ur_combined/whi_ur_robot_driver_bridge/arm_motion_state
