@@ -63,7 +63,7 @@ namespace whi_moveit_cpp_bridge
         std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };
         std::unique_ptr<ros::Publisher> state_pub_{ nullptr };
         moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;
-        int motion_state_{ whi_interfaces::WhiMotionState::STA_STANDBY };
+        std::atomic_bool is_arm_fault_{ false };
         std::unique_ptr<ros::ServiceClient> client_arm_ready_{ nullptr };
         std::string tf_prefix_;
         double wait_duration_{ 1.0 };

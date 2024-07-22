@@ -227,9 +227,9 @@ namespace whi_moveit_cpp_bridge
                         {
                             // execute path
                             bool res = moveit_cpp_->execute(planning_group_, traj);
-                            if (motion_state_ == whi_interfaces::WhiMotionState::STA_FAULT)
+                            if (is_arm_fault_.load())
                             {
-                                motion_state_ = whi_interfaces::WhiMotionState::STA_STANDBY;
+                                is_arm_fault_.store(false);
                                 res = false;
 
                                 ROS_ERROR_STREAM("protective stop encountered");
@@ -323,9 +323,9 @@ namespace whi_moveit_cpp_bridge
             if (solution)
             {
                 bool res = planning_components_->execute();
-                if (motion_state_ == whi_interfaces::WhiMotionState::STA_FAULT)
+                if (is_arm_fault_.load())
                 {
-                    motion_state_ = whi_interfaces::WhiMotionState::STA_STANDBY;
+                    is_arm_fault_.store(false);
                     res = false;
 
                     ROS_ERROR_STREAM("protective stop encountered");
@@ -352,7 +352,10 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::callbackArmMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg)
     {
-        motion_state_ = Msg->state;
+        if (Msg->state == whi_interfaces::WhiMotionState::STA_FAULT)
+        {
+            is_arm_fault_.store(true);
+        }
     }
 
     bool MoveItCppBridge::onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
