@@ -1,17 +1,15 @@
 <?xml version="1.0"?>
 <launch>
   <!-- argument -->
-  <arg name="arm" default="chin"/>
-  <arg name="arm_model" default="crb7"/>
-  <arg name="vehicle" default="L1"/>
-  <arg name="vehicle_model" default="differential"/>
+  <arg name="arm" default="jaka"/>
+  <arg name="arm_model" default="zu5"/>
   <arg name="controller" default="fake"/>
   <!-- urdf and srdf file -->
   <arg name="moveit_config_path" default="$(eval '$(find ' + arg('arm') + '_' + arg('arm_model') + '_moveit_config)')"/>
-  <arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_$(arg vehicle)_$(arg vehicle_model)_$(arg arm)_$(arg arm_model).urdf.xacro"/>
-  <arg name="srdf_file" default="$(arg moveit_config_path)/config/$(arg arm)_$(arg arm_model)_combined.srdf"/>
+  <arg name="urdf_file" default="$(find jaka_description)/urdf/$(arg arm)_$(arg arm_model).urdf.xacro"/>
+  <arg name="srdf_file" default="$(arg moveit_config_path)/config/$(arg arm)_$(arg arm_model).srdf"/>
   <arg name="fixed_frame" default="world"/>
-  <arg name="base_frame" default="base_link"/>
+  <arg name="base_frame" default="Link_0"/>
 
   <!-- kinematics -->
   <rosparam command="load" file="$(arg moveit_config_path)/config/kinematics.yaml"/>
@@ -33,6 +31,11 @@
 
   <!-- If needed, broadcast static tf for robot root -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 $(arg fixed_frame) $(arg base_frame)" />
-  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 chin_link_tcp camera" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 Link_6 camera" />
+
+  <!-- Start robot state publisher -->
+  <group if="$(eval arg('controller') == 'fake')">
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  </group>
 
 </launch>

@@ -52,12 +52,12 @@ namespace whi_moveit_cpp_bridge
         state_pub_ = std::make_unique<ros::Publisher>(
         	node_handle_->advertise<std_msgs::Bool>("moveit_cpp_state", 10));
 
+        node_handle_ns_free_ = std::make_shared<ros::NodeHandle>();
         // initiate arm ready service client if not fake
         if (!isFake)
         {
             node_handle_->param("wait_duration", wait_duration_, 1.0);
             node_handle_->param("max_try_count", max_try_count_, 10);
-            node_handle_ns_free_ = std::make_shared<ros::NodeHandle>();
             std::string serviceReady;
             node_handle_->param("arm_ready_service", serviceReady, std::string("arm_ready"));
             if (!serviceReady.empty())
