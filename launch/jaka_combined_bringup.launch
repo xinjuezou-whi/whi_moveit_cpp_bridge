@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- argument -->
+  <arg name="robot_name" default=""/>
+  <arg name="arm" default="jaka"/>
+  <arg name="arm_model" default="zu5"/>
+  <arg name="vehicle" default="L1"/>
+  <arg name="vehicle_model" default="differential"/>
+  <arg name="controller" default="fake"/>
+  <!-- urdf and srdf file -->
+  <arg name="moveit_config_path" default="$(eval '$(find ' + arg('arm') + '_' + arg('arm_model') + '_moveit_config)')"/>
+  <arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_$(arg vehicle)_$(arg vehicle_model)_$(arg arm)_$(arg arm_model).urdf.xacro"/>
+  <arg name="srdf_file" default="$(arg moveit_config_path)/config/$(arg arm)_$(arg arm_model)_combined.srdf"/>
+  <arg name="fixed_frame" default="world"/>
+  <arg name="base_frame" default="$(arg robot_name)/link_0"/>
+
+  <!-- kinematics -->
+  <rosparam command="load" file="$(arg moveit_config_path)/config/kinematics.yaml"/>
+
+  <!-- Planning Pipeline -->
+  <include ns="whi_moveit_cpp_bridge/ompl" file="$(arg moveit_config_path)/launch/ompl_planning_pipeline.launch.xml"/>
+
+  <!-- Trajectory execution  -->
+  <include ns="whi_moveit_cpp_bridge" file="$(arg moveit_config_path)/launch/trajectory_execution.launch.xml">
+    <arg name="moveit_controller_manager" value="$(arg controller)"/>
+  </include>
+
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(arg moveit_config_path)/launch/planning_context.launch">
+    <arg name="urdf_file" value="$(arg urdf_file)"/>
+    <arg name="srdf_file" value="$(arg srdf_file)"/>
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <!-- If needed, broadcast static tf for robot root -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 $(arg fixed_frame) $(arg base_frame)" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 $(arg robot_name)/link_6 $(arg robot_name)/camera" />
+
+  <!-- Start robot state publisher -->
+  <group if="$(eval arg('controller') == 'fake')">
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  </group>
+
+</launch>
