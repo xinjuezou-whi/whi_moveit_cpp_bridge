@@ -12,7 +12,7 @@
   <arg name="urdf_file" default="$(find whi_amr_description)/urdf/NaviBOT_$(arg vehicle)_$(arg vehicle_model)_$(arg arm)_$(arg arm_model).urdf.xacro"/>
   <arg name="srdf_file" default="$(arg moveit_config_path)/config/$(arg arm)_$(arg arm_model)_combined.srdf"/>
   <arg name="fixed_frame" default="world"/>
-  <arg name="base_frame" default="$(arg robot_name)/link_0"/>
+  <!-- <arg name="base_frame" default="$(arg robot_name)/link_0"/> -->
 
   <!-- kinematics -->
   <rosparam command="load" file="$(arg moveit_config_path)/config/kinematics.yaml"/>
@@ -33,7 +33,7 @@
   </include>
 
   <!-- If needed, broadcast static tf for robot root -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 $(arg fixed_frame) $(arg base_frame)" />
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 $(arg fixed_frame) $(arg base_frame)" /> -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 $(arg robot_name)/link_6 $(arg robot_name)/camera" />
 
   <!-- Start robot state publisher -->
