@@ -7,7 +7,6 @@
   <arg name="controller" default="fake"/>
   <arg name="vehicle" default=""/>
   <arg name="vehicle_model" default=""/>
-  <arg name="fixed_frame" default="world"/>
   <arg name="with_rviz" default="true"/>
 
   <!-- params -->
@@ -21,7 +20,6 @@
       <arg name="arm" value="$(arg arm)"/>
       <arg name="arm_model" value="$(arg arm_model)"/>
       <arg name="controller" value="$(arg controller)"/>
-      <arg name="fixed_frame" value="$(arg fixed_frame)"/>
     </include>
   </group>
   <group unless="$(eval arg('vehicle') == '')">
@@ -30,7 +28,6 @@
       <arg name="arm" value="$(arg arm)"/>
       <arg name="arm_model" value="$(arg arm_model)"/>
       <arg name="controller" value="$(arg controller)"/>
-      <arg name="fixed_frame" value="$(arg fixed_frame)"/>
       <arg name="vehicle" value="$(arg vehicle)"/>
       <arg name="vehicle_model" value="$(arg vehicle_model)"/>
     </include>
