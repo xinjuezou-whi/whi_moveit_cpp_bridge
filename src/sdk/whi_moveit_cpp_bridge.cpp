@@ -133,6 +133,12 @@ namespace whi_moveit_cpp_bridge
         motion_state_sub_ = std::make_unique<ros::Subscriber>(
 		    node_handle_ns_free_->subscribe<whi_interfaces::WhiMotionState>(stateTopic, 10,
 		    std::bind(&MoveItCppBridge::callbackArmMotionState, this, std::placeholders::_1)));
+        // subscribe estop topic
+        std::string estopTopic;
+        node_handle_->param("estop_topic", estopTopic, std::string("estop"));
+        estop_sub_ = std::make_unique<ros::Subscriber>(
+		    node_handle_ns_free_->subscribe<std_msgs::Bool>(estopTopic, 10,
+		    std::bind(&MoveItCppBridge::callbackEstop, this, std::placeholders::_1)));
 
         // publish state for notifying nodes that depend on me
         std_msgs::Bool msg;
@@ -355,6 +361,14 @@ namespace whi_moveit_cpp_bridge
         if (Msg->state == whi_interfaces::WhiMotionState::STA_FAULT)
         {
             is_arm_fault_.store(true);
+        }
+    }
+
+    void MoveItCppBridge::callbackEstop(const std_msgs::Bool::ConstPtr& Msg)
+    {
+        if (Msg->data)
+        {
+            moveit_cpp_->getTrajectoryExecutionManagerNonConst()->stopExecution();
         }
     }
 

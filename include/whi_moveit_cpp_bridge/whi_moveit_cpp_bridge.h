@@ -26,6 +26,7 @@ Changelog:
 #include <ros/ros.h>
 #include <moveit/moveit_cpp/moveit_cpp.h>
 #include <moveit/moveit_cpp/planning_component.h>
+#include <std_msgs/Bool.h>
 
 #include <memory>
 
@@ -42,6 +43,7 @@ namespace whi_moveit_cpp_bridge
         bool execute(const whi_interfaces::WhiTcpPose& Pose);
         void callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg);
         void callbackArmMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
+        void callbackEstop(const std_msgs::Bool::ConstPtr& Msg);
         bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
             whi_interfaces::WhiSrvTcpPose::Response& Res);
         bool trans2TargetFrame(const std::string& DstFrame,
@@ -71,5 +73,6 @@ namespace whi_moveit_cpp_bridge
         double cartesian_fraction_{ 1.0 };
         double cartesian_traj_max_step_{ 0.01 };
         std::string eef_link_{ "eef" };
+        std::unique_ptr<ros::Subscriber> estop_sub_{ nullptr };
 	};
 } // namespace whi_moveit_cpp_bridge

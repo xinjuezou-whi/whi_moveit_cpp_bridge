@@ -19,6 +19,7 @@ plan_request_params:
 
 # node params
 arm_ready_service: whi_arm_interface/arm_ready #whi_ur_robot_driver_bridge/arm_ready
+estop_topic: estop
 wait_duration: 1.0 # second
 max_try_count: 30
 cartesian_fraction: 0.95
