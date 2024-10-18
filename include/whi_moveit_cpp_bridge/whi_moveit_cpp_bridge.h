@@ -63,6 +63,7 @@ namespace whi_moveit_cpp_bridge
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
         std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };
+        std::unique_ptr<ros::Subscriber> estop_sub_{ nullptr };
         std::unique_ptr<ros::Publisher> state_pub_{ nullptr };
         moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;
         std::atomic_bool is_arm_fault_{ false };
@@ -73,6 +74,6 @@ namespace whi_moveit_cpp_bridge
         double cartesian_fraction_{ 1.0 };
         double cartesian_traj_max_step_{ 0.01 };
         std::string eef_link_{ "eef" };
-        std::unique_ptr<ros::Subscriber> estop_sub_{ nullptr };
+        bool estopped_{ false };
 	};
 } // namespace whi_moveit_cpp_bridge

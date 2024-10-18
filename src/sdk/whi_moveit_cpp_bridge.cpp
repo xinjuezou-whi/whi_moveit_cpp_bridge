@@ -148,13 +148,20 @@ namespace whi_moveit_cpp_bridge
 
     bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
     {
+        if (estopped_)
+        {
+            ROS_WARN_STREAM("failed to execute TCP pose, EStop is active");
+
+            return false;
+        }
+
         int tryCount = 0;
         std_srvs::Trigger srv;
         while (client_arm_ready_ && !client_arm_ready_->call(srv))
         {
             if (++tryCount > max_try_count_)
             {
-                ROS_ERROR_STREAM("failed to call TCP pose service, arm is not ready");
+                ROS_ERROR_STREAM("failed to execute TCP pose, arm is not ready");
 
                 return false;
             }
@@ -366,7 +373,8 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::callbackEstop(const std_msgs::Bool::ConstPtr& Msg)
     {
-        if (Msg->data)
+        estopped_ = Msg->data;
+        if (estopped_)
         {
             moveit_cpp_->getTrajectoryExecutionManagerNonConst()->stopExecution();
         }
