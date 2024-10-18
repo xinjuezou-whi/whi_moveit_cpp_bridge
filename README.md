@@ -8,7 +8,7 @@ Bridge the MoveIt planning and execution with the MoveItCpp interface offering b
 git clone https://github.com/xinjuezou-whi/whi_interfaces.git
 ```
 
-## Published topic
+## Advertised topic
 **tcp_pose**(whi_interfaces::WhiTcpPose)
 
 For quick validation, input the following command with configured pose group:
@@ -24,6 +24,11 @@ rostopic pub -1 /whi_moveit_cpp_bridge/tcp_pose whi_interfaces/WhiTcpPose "{tcp_
 ```
 
 ![cpp_bridge](https://github.com/xinjuezou-whi/whi_moveit_cpp_bridge/assets/72239958/eea78e20-2895-4d4e-8436-d42a17aef736)
+
+## Subscribed topic
+**estop**(std_msgs::Bool)
+
+To stop the current executing trajectory
 
 ## Advertised service
 **tcp_pose**(whi_interfaces::WhiSrvTcpPose)
