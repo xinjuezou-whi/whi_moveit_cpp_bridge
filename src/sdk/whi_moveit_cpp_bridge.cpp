@@ -106,26 +106,13 @@ namespace whi_moveit_cpp_bridge
             return;
         }
 
-        // providing the tcp pose service, and it will preempt publisher
-        std::string service;
-        node_handle_->param("tcp_pose_service", service, std::string());
-        if (!service.empty())
-        {
-            target_srv_ = std::make_unique<ros::ServiceServer>(
-                node_handle_->advertiseService(service, &MoveItCppBridge::onServiceTcpPose, this));
-        }
-        else
-        {
-            // subscriber
-            std::string topic;
-            node_handle_->param("tcp_pose_topic", topic, std::string(""));
-            if (!topic.empty())
-            {
-                target_sub_ = std::make_unique<ros::Subscriber>(
-			        node_handle_->subscribe<whi_interfaces::WhiTcpPose>(topic, 10,
-			        std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
-            }
-        }
+        // providing the tcp_pose service
+        std::string poseAction("tcp_pose");
+        target_srv_ = std::make_unique<ros::ServiceServer>(
+            node_handle_->advertiseService(poseAction, &MoveItCppBridge::onServiceTcpPose, this));
+        target_sub_ = std::make_unique<ros::Subscriber>(
+            node_handle_->subscribe<whi_interfaces::WhiTcpPose>(poseAction, 10,
+            std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
 
         // subscribe to arm motion state
         std::string stateTopic;
@@ -139,6 +126,12 @@ namespace whi_moveit_cpp_bridge
         estop_sub_ = std::make_unique<ros::Subscriber>(
 		    node_handle_ns_free_->subscribe<std_msgs::Bool>(estopTopic, 10,
 		    std::bind(&MoveItCppBridge::callbackEstop, this, std::placeholders::_1)));
+        // subscribe motion state topic
+        std::string motionStateTopic;
+        node_handle_->param("motion_state_topic", motionStateTopic, std::string("motion_state"));
+        estop_sub_ = std::make_unique<ros::Subscriber>(
+		    node_handle_ns_free_->subscribe<whi_interfaces::WhiMotionState>(motionStateTopic, 10,
+		    std::bind(&MoveItCppBridge::callbackMotionState, this, std::placeholders::_1)));
 
         // publish state for notifying nodes that depend on me
         std_msgs::Bool msg;
@@ -368,6 +361,19 @@ namespace whi_moveit_cpp_bridge
         if (Msg->state == whi_interfaces::WhiMotionState::STA_FAULT)
         {
             is_arm_fault_.store(true);
+        }
+    }
+
+    void MoveItCppBridge::callbackMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg)
+    {
+        if (Msg->state == whi_interfaces::WhiMotionState::STA_ESTOP)
+        {
+            moveit_cpp_->getTrajectoryExecutionManagerNonConst()->stopExecution();
+            estopped_ = true;
+        }
+        else if (Msg->state == whi_interfaces::WhiMotionState::STA_ESTOP_CLEAR)
+        {
+            estopped_ = false;
         }
     }
 

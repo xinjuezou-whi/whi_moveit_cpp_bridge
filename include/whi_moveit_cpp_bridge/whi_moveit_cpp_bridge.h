@@ -43,6 +43,7 @@ namespace whi_moveit_cpp_bridge
         bool execute(const whi_interfaces::WhiTcpPose& Pose);
         void callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg);
         void callbackArmMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
+        void callbackMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
         void callbackEstop(const std_msgs::Bool::ConstPtr& Msg);
         bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
             whi_interfaces::WhiSrvTcpPose::Response& Res);

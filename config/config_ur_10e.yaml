@@ -2,6 +2,4 @@ whi_moveit_cpp_bridge:
   tf_prefix: "$(arg robot_name)"
   planning_group: manipulator
   eef_link: wrist_3_link
-  tcp_pose_service: tcp_pose
-  tcp_pose_topic: tcp_pose
   arm_state_topic: arm_motion_state
