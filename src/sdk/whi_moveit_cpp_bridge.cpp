@@ -212,10 +212,10 @@ namespace whi_moveit_cpp_bridge
                     {
                         fraction = startState->computeCartesianPath(joint_model_group_, trajState, linkModel, target,
                             true, cartesian_traj_max_step_, 0.0);
-    #ifndef DEBUG
+#ifndef DEBUG
                         std::cout << "Cartersian fraction " << fraction << ", trajectory size " <<
                             trajState.size() << std::endl;
-    #endif
+#endif
                     } while (++tryCount < max_try_count_ && fraction < cartesian_fraction_);
 
                     if (fraction - cartesian_fraction_ >= 0.0)
