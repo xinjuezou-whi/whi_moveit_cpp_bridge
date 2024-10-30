@@ -63,8 +63,9 @@ namespace whi_moveit_cpp_bridge
         const moveit::core::JointModelGroup* joint_model_group_{ nullptr };
         std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
-        std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };
+        std::unique_ptr<ros::Subscriber> arm_state_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> estop_sub_{ nullptr };
+        std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };
         std::unique_ptr<ros::Publisher> state_pub_{ nullptr };
         moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;
         std::atomic_bool is_arm_fault_{ false };
