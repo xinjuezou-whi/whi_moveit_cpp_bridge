@@ -106,13 +106,23 @@ namespace whi_moveit_cpp_bridge
             return;
         }
 
-        // providing the tcp_pose service
-        std::string poseAction("tcp_pose");
-        target_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService(poseAction, &MoveItCppBridge::onServiceTcpPose, this));
-        target_sub_ = std::make_unique<ros::Subscriber>(
-            node_handle_->subscribe<whi_interfaces::WhiTcpPose>(poseAction, 10,
+        // providing the tcp_pose/joint_pose service
+        std::string tcpAction("tcp_pose");
+        target_tcp_srv_ = std::make_unique<ros::ServiceServer>(
+            node_handle_->advertiseService(tcpAction, &MoveItCppBridge::onServiceTcpPose, this));
+        target_tcp_sub_ = std::make_unique<ros::Subscriber>(
+            node_handle_->subscribe<whi_interfaces::WhiTcpPose>(tcpAction, 10,
             std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
+        std::string jointAction("joint_pose");
+        target_joint_srv_ = std::make_unique<ros::ServiceServer>(
+            node_handle_->advertiseService(jointAction, &MoveItCppBridge::onServiceJointPose, this));
+        target_joint_sub_ = std::make_unique<ros::Subscriber>(
+            node_handle_->subscribe<whi_interfaces::WhiJointPose>(jointAction, 10,
+            std::bind(&MoveItCppBridge::callbackJointPose, this, std::placeholders::_1)));
+        // providing joint model names service
+        std::string jointNames("joint_names");
+        joint_names_srv_ = std::make_unique<ros::ServiceServer>(
+            node_handle_->advertiseService(jointNames, &MoveItCppBridge::onServiceJointNames, this));
 
         // subscribe to arm motion state
         std::string stateTopic;
@@ -139,11 +149,11 @@ namespace whi_moveit_cpp_bridge
         state_pub_->publish(msg);
     }
 
-    bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
+    bool MoveItCppBridge::preExecution() const
     {
         if (estopped_)
         {
-            ROS_WARN_STREAM("failed to execute TCP pose, EStop is active");
+            ROS_WARN_STREAM("cannot execute pose action, EStop is active");
 
             return false;
         }
@@ -154,7 +164,7 @@ namespace whi_moveit_cpp_bridge
         {
             if (++tryCount > max_try_count_)
             {
-                ROS_ERROR_STREAM("failed to execute TCP pose, arm is not ready");
+                ROS_ERROR_STREAM("cannot execute pose action, arm is not ready");
 
                 return false;
             }
@@ -163,6 +173,16 @@ namespace whi_moveit_cpp_bridge
                 ROS_WARN_STREAM("wait for arm ready... in " << max_try_count_ << " seconds");
                 std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
             }
+        }
+
+        return true;
+    }
+
+    bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
+    {
+        if (!preExecution())
+        {
+            return false;
         }
 
         auto startState = moveit_cpp_->getCurrentState();
@@ -206,7 +226,7 @@ namespace whi_moveit_cpp_bridge
                 if (linkModel != nullptr)
                 {
                     std::vector<moveit::core::RobotStatePtr> trajState;
-                    tryCount = 0;
+                    int tryCount = 0;
                     double fraction = 0.0;
                     do
                     {
@@ -262,7 +282,7 @@ namespace whi_moveit_cpp_bridge
             }
             else
             {
-                tryCount = 0;
+                int tryCount = 0;
                 do
                 {
                     foundIk = startState->setFromIK(joint_model_group_, targetPose.pose);
@@ -351,7 +371,72 @@ namespace whi_moveit_cpp_bridge
         }
     }
 
+    bool MoveItCppBridge::execute(const whi_interfaces::WhiJointPose& Pose)
+    {
+        if (!preExecution())
+        {
+            return false;
+        }
+
+        auto startState = moveit_cpp_->getCurrentState();
+        planning_components_->setStartStateToCurrentState();
+
+        if (Pose.is_relative)
+        {
+            std::vector<double> currentJointPositions;
+            startState->copyJointGroupPositions(joint_model_group_, currentJointPositions);
+
+            for (int i = 0; i < std::min(currentJointPositions.size(), Pose.joint_pose.position.size()); ++i)
+            {
+                currentJointPositions[i] += Pose.joint_pose.position[i];
+            }
+            startState->setJointGroupPositions(joint_model_group_, currentJointPositions);
+        }
+        else
+        {
+            startState->setJointGroupPositions(joint_model_group_, Pose.joint_pose.position);
+        }
+
+        moveit_msgs::Constraints constraints;
+        constraints.joint_constraints = Pose.joint_constraints;
+        planning_components_->setPathConstraints(constraints);
+        planning_components_->setGoal(*startState);
+
+        moveit_cpp::PlanningComponent::PlanRequestParameters params = init_plan_parameters_;
+        if (Pose.velocity_scale > 0.0)
+        {
+            params.max_velocity_scaling_factor = Pose.velocity_scale;
+        }
+        if (Pose.acceleration_scale > 0.0)
+        {
+            params.max_acceleration_scaling_factor = Pose.acceleration_scale;
+        }
+        auto solution = planning_components_->plan(params);
+        if (solution)
+        {
+            bool res = planning_components_->execute();
+            if (is_arm_fault_.load())
+            {
+                is_arm_fault_.store(false);
+                res = false;
+
+                ROS_ERROR_STREAM("protective stop encountered");
+            }
+            return res;
+        }
+        else
+        {
+            ROS_WARN_STREAM("failed to find path solution");
+            return false;
+        }
+    }
+
     void MoveItCppBridge::callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg)
+    {
+        execute(*Msg);
+    }
+
+    void MoveItCppBridge::callbackJointPose(const whi_interfaces::WhiJointPose::ConstPtr& Msg)
     {
         execute(*Msg);
     }
@@ -390,6 +475,23 @@ namespace whi_moveit_cpp_bridge
         whi_interfaces::WhiSrvTcpPose::Response& Res)
     {
         Res.result = execute(Req.pose);
+
+        return Res.result;
+    }
+
+    bool MoveItCppBridge::onServiceJointPose(whi_interfaces::WhiSrvJointPose::Request& Req,
+        whi_interfaces::WhiSrvJointPose::Response& Res)
+    {
+        Res.result = execute(Req.pose);
+
+        return Res.result;
+    }
+
+    bool MoveItCppBridge::onServiceJointNames(whi_interfaces::WhiSrvJointNames::Request& Req,
+        whi_interfaces::WhiSrvJointNames::Response& Res)
+    {
+        Res.joint_names = joint_model_group_->getJointModelNames();
+        Res.result = Res.joint_names.empty() ? false : true;
 
         return Res.result;
     }

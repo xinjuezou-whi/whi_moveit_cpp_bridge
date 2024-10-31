@@ -21,6 +21,8 @@ Changelog:
 ******************************************************************/
 #pragma once
 #include "whi_interfaces/WhiSrvTcpPose.h"
+#include "whi_interfaces/WhiSrvJointPose.h"
+#include "whi_interfaces/WhiSrvJointNames.h"
 #include "whi_interfaces/WhiMotionState.h"
 
 #include <ros/ros.h>
@@ -40,13 +42,20 @@ namespace whi_moveit_cpp_bridge
 
     protected:
         void init();
+        bool preExecution() const;
         bool execute(const whi_interfaces::WhiTcpPose& Pose);
+        bool execute(const whi_interfaces::WhiJointPose& Pose);
         void callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg);
+        void callbackJointPose(const whi_interfaces::WhiJointPose::ConstPtr& Msg);
         void callbackArmMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
         void callbackMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
         void callbackEstop(const std_msgs::Bool::ConstPtr& Msg);
         bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
             whi_interfaces::WhiSrvTcpPose::Response& Res);
+        bool onServiceJointPose(whi_interfaces::WhiSrvJointPose::Request& Req,
+            whi_interfaces::WhiSrvJointPose::Response& Res);
+        bool onServiceJointNames(whi_interfaces::WhiSrvJointNames::Request& Req,
+            whi_interfaces::WhiSrvJointNames::Response& Res);
         bool trans2TargetFrame(const std::string& DstFrame,
             const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut);
         void loadInitPlanParams();
@@ -61,8 +70,11 @@ namespace whi_moveit_cpp_bridge
         std::string planning_group_{ "whi_arm" };
         moveit::core::RobotModelConstPtr robot_model_{ nullptr };
         const moveit::core::JointModelGroup* joint_model_group_{ nullptr };
-        std::unique_ptr<ros::Subscriber> target_sub_{ nullptr };
-        std::unique_ptr<ros::ServiceServer> target_srv_{ nullptr };
+        std::unique_ptr<ros::Subscriber> target_tcp_sub_{ nullptr };
+        std::unique_ptr<ros::Subscriber> target_joint_sub_{ nullptr };
+        std::unique_ptr<ros::ServiceServer> target_tcp_srv_{ nullptr };
+        std::unique_ptr<ros::ServiceServer> target_joint_srv_{ nullptr };
+        std::unique_ptr<ros::ServiceServer> joint_names_srv_{ nullptr };
         std::unique_ptr<ros::Subscriber> arm_state_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> estop_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };
