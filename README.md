@@ -11,7 +11,7 @@ git clone https://github.com/xinjuezou-whi/whi_interfaces.git
 ## Advertised topic
 **tcp_pose**(whi_interfaces::WhiTcpPose)
 
-For quick validation, input the following command with configured pose group:
+For quick validation, input the following command with the configured pose group:
 ```
 rostopic pub -1 /whi_moveit_cpp_bridge/tcp_pose whi_interfaces/WhiTcpPose "{pose_group: 'home'}"
 ```
@@ -24,6 +24,16 @@ rostopic pub -1 /whi_moveit_cpp_bridge/tcp_pose whi_interfaces/WhiTcpPose "{tcp_
 ```
 
 ![cpp_bridge](https://github.com/xinjuezou-whi/whi_moveit_cpp_bridge/assets/72239958/eea78e20-2895-4d4e-8436-d42a17aef736)
+
+**joint_pose**(whi_interfaces::WhiJointPose)
+An example of the absolute positions for the joint group:
+```
+rostopic pub -1 /whi_moveit_cpp_bridge/joint_pose whi_interfaces/WhiJointPose "{joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: false}"
+```
+Or with the relative positions:
+```
+rostopic pub -1 /whi_moveit_cpp_bridge/joint_pose whi_interfaces/WhiJointPose "{joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: true}"
+```
 
 ## Subscribed topic
 **estop**(std_msgs::Bool)
@@ -48,8 +58,18 @@ rosservice call /whi_moveit_cpp_bridge/tcp_pose "{pose: {tcp_pose: {header: {fra
 
 > TIP: use the Matlab online to calculate the quaternion: https://www.mathworks.com/help/nav/ref/eul2quat.html
 
+**joint_pose**(whi_interfaces::WhiSrvJointPose)
+An example of the absolute positions for the joint group:
+```
+rosservice call /whi_moveit_cpp_bridge/joint_pose "{pose: {joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: false}}"
+```
+Or with the relative positions:
+```
+rosservice call /whi_moveit_cpp_bridge/joint_pose "{pose: {joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: true}}"
+```
+
 ## Usage
-For a quick validation, set the argument "controller" to "fake", for controlling a real arm, please refer to arm's hardware interface for its controller name:
+For a quick validation, set the argument "controller" to "fake", for controlling a real arm, please refer to the arm's hardware interface for its controller name:
 
 ### Fake controller
 ```
