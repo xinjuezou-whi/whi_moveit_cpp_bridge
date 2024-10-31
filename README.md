@@ -72,6 +72,15 @@ Or with the relative positions:
 rosservice call /whi_moveit_cpp_bridge/joint_pose "{pose: {joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: true}}"
 ```
 
+**joint_names**(whi_interfaces::WhiJointNames)
+
+Use this service to check the sequence of each joint in the joint group, if it is uncertain:
+```
+rosservice call /whi_moveit_cpp_bridge/joint_names
+```
+![image](https://github.com/user-attachments/assets/6c5ff956-2900-4b1c-b630-b2bfb019c666)
+
+
 ## Usage
 For a quick validation, set the argument "controller" to "fake", for controlling a real arm, please refer to the arm's hardware interface for its controller name:
 
