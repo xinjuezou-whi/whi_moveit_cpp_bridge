@@ -19,10 +19,11 @@ All text above must be included in any redistribution.
 #include "whi_moveit_cpp_bridge/whi_moveit_cpp_bridge.h"
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <std_srvs/Trigger.h>
 #include <tf2_eigen/tf2_eigen.h>
-#include <moveit/trajectory_processing/iterative_time_parameterization.h>
+#include <std_srvs/Trigger.h>
 #include <std_msgs/Bool.h>
+#include <moveit/trajectory_processing/iterative_time_parameterization.h>
+#include <moveit/robot_state/cartesian_interpolator.h> // comment if old moveitcore is required
 
 #include <thread>
 #include <iterator>
@@ -230,8 +231,16 @@ namespace whi_moveit_cpp_bridge
                     double fraction = 0.0;
                     do
                     {
-                        fraction = startState->computeCartesianPath(joint_model_group_, trajState, linkModel, target,
-                            true, cartesian_traj_max_step_, 0.0);
+                        // uncomment if old moveitcore is required
+                        // fraction = startState->computeCartesianPath(joint_model_group_, trajState, linkModel, target,
+                        //     true, cartesian_traj_max_step_, 0.0);
+                        // comment if old moveitcore is required
+                        fraction = moveit::core::CartesianInterpolator::computeCartesianPath(startState.get(),
+                            joint_model_group_, trajState, linkModel, target, true,
+                            moveit::core::MaxEEFStep(cartesian_traj_max_step_),
+                            moveit::core::CartesianPrecision{ 0.01, 0.01 },
+                            moveit::core::GroupStateValidityCallbackFn(), kinematics::KinematicsQueryOptions(),
+                            Eigen::Isometry3d::Identity());
 #ifndef DEBUG
                         std::cout << "Cartersian fraction " << fraction << ", trajectory size " <<
                             trajState.size() << std::endl;
