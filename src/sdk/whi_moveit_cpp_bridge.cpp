@@ -87,6 +87,7 @@ namespace whi_moveit_cpp_bridge
         loadInitPlanParams();
         node_handle_->param("cartesian_fraction", cartesian_fraction_, 1.0);
         node_handle_->param("cartesian_traj_max_step", cartesian_traj_max_step_, 0.01);
+        node_handle_->getParam("cartesian_precision", cartesian_precision_);
         node_handle_->param("eef_link", eef_link_, std::string("eef"));
 
         try
@@ -238,7 +239,7 @@ namespace whi_moveit_cpp_bridge
                         fraction = moveit::core::CartesianInterpolator::computeCartesianPath(startState.get(),
                             joint_model_group_, trajState, linkModel, target, true,
                             moveit::core::MaxEEFStep(cartesian_traj_max_step_),
-                            moveit::core::CartesianPrecision{ 0.01, 0.01 },
+                            moveit::core::CartesianPrecision{ cartesian_precision_[0], cartesian_precision_[1] },
                             moveit::core::GroupStateValidityCallbackFn(), kinematics::KinematicsQueryOptions(),
                             Eigen::Isometry3d::Identity());
 #ifndef DEBUG

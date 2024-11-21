@@ -87,6 +87,7 @@ namespace whi_moveit_cpp_bridge
         int max_try_count_{ 10 };
         double cartesian_fraction_{ 1.0 };
         double cartesian_traj_max_step_{ 0.01 };
+        std::vector<double> cartesian_precision_{ 0.01, 0.01 };
         std::string eef_link_{ "eef" };
         bool estopped_{ false };
 	};
