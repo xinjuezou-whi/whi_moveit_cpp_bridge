@@ -1,0 +1,5 @@
+whi_moveit_cpp_bridge:
+  tf_prefix: "$(arg robot_name)"
+  planning_group: jaka_a5
+  eef_link: link_6
+  arm_state_topic: whi_arm_interface/arm_motion_state
