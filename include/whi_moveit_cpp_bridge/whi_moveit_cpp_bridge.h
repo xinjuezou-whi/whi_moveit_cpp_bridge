@@ -20,10 +20,11 @@ Changelog:
 2022-xx-xx: xxx
 ******************************************************************/
 #pragma once
-#include "whi_interfaces/WhiSrvTcpPose.h"
-#include "whi_interfaces/WhiSrvJointPose.h"
-#include "whi_interfaces/WhiSrvJointNames.h"
-#include "whi_interfaces/WhiMotionState.h"
+#include <whi_interfaces/WhiSrvTcpPose.h>
+#include <whi_interfaces/WhiSrvJointPose.h>
+#include <whi_interfaces/WhiSrvJointNames.h>
+#include <whi_interfaces/WhiSrvTcpOffset.h>
+#include <whi_interfaces/WhiMotionState.h>
 
 #include <ros/ros.h>
 #include <moveit/moveit_cpp/moveit_cpp.h>
@@ -56,6 +57,8 @@ namespace whi_moveit_cpp_bridge
             whi_interfaces::WhiSrvJointPose::Response& Res);
         bool onServiceJointNames(whi_interfaces::WhiSrvJointNames::Request& Req,
             whi_interfaces::WhiSrvJointNames::Response& Res);
+        bool onServiceTcpOffset(whi_interfaces::WhiSrvTcpOffset::Request& Req,
+            whi_interfaces::WhiSrvTcpOffset::Response& Res);
         bool trans2TargetFrame(const std::string& DstFrame,
             const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut);
         void loadInitPlanParams();
@@ -75,6 +78,7 @@ namespace whi_moveit_cpp_bridge
         std::unique_ptr<ros::ServiceServer> target_tcp_srv_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_joint_srv_{ nullptr };
         std::unique_ptr<ros::ServiceServer> joint_names_srv_{ nullptr };
+        std::unique_ptr<ros::ServiceServer> tcp_offset_srv_{ nullptr };
         std::unique_ptr<ros::Subscriber> arm_state_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> estop_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };

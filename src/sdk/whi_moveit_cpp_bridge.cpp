@@ -122,9 +122,11 @@ namespace whi_moveit_cpp_bridge
             node_handle_->subscribe<whi_interfaces::WhiJointPose>(jointAction, 10,
             std::bind(&MoveItCppBridge::callbackJointPose, this, std::placeholders::_1)));
         // providing joint model names service
-        std::string jointNames("joint_names");
         joint_names_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService(jointNames, &MoveItCppBridge::onServiceJointNames, this));
+            node_handle_->advertiseService("joint_names", &MoveItCppBridge::onServiceJointNames, this));
+        // advertise tcp offset service
+        tcp_offset_srv_ = std::make_unique<ros::ServiceServer>(
+            node_handle_->advertiseService("tcp_offset", &MoveItCppBridge::onServiceTcpOffset, this));
 
         // subscribe to arm motion state
         std::string stateTopic;
@@ -502,6 +504,74 @@ namespace whi_moveit_cpp_bridge
     {
         Res.joint_names = joint_model_group_->getJointModelNames();
         Res.result = Res.joint_names.empty() ? false : true;
+
+        return Res.result;
+    }
+
+    bool MoveItCppBridge::onServiceTcpOffset(whi_interfaces::WhiSrvTcpOffset::Request& Req, whi_interfaces::WhiSrvTcpOffset::Response& Res)
+    {
+        auto state = moveit_cpp_->getCurrentState();
+        geometry_msgs::Pose currentTcpPose = tf2::toMsg(state->getGlobalLinkTransform(eef_link_));
+        tf2::Quaternion currentQ(currentTcpPose.orientation.x, currentTcpPose.orientation.y, currentTcpPose.orientation.z,
+            currentTcpPose.orientation.w);
+
+        if (!Req.pose_group.empty())
+        {
+            auto jointValues = planning_components_->getNamedTargetStateValues(Req.pose_group);
+            if (!jointValues.empty())
+            {
+                std::vector<double> jointPositions;
+                for (const auto& it : jointValues)
+                {
+                    jointPositions.push_back(it.second);
+                }
+
+                state->setJointGroupPositions(joint_model_group_, jointPositions);
+
+                // forward kinematics
+                auto transform = state->getGlobalLinkTransform(eef_link_);
+                auto reference = tf2::toMsg(transform);
+                tf2::Quaternion referenceQ(reference.orientation.x, reference.orientation.y,
+                    reference.orientation.z, reference.orientation.w);
+
+                Res.result = true;
+                Res.offset.position.x = currentTcpPose.position.x - reference.position.x;
+                Res.offset.position.y = currentTcpPose.position.y - reference.position.y;
+                Res.offset.position.z = currentTcpPose.position.z - reference.position.z;
+                Res.offset.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
+            }
+            else
+            {
+                Res.result = false;
+            }
+        }
+        else if (!Req.joint_pose.position.empty())
+        {
+            state->setJointGroupPositions(joint_model_group_, Req.joint_pose.position);
+
+            // forward kinematics
+            auto transform = state->getGlobalLinkTransform(eef_link_);
+            auto reference = tf2::toMsg(transform);
+            tf2::Quaternion referenceQ(reference.orientation.x, reference.orientation.y,
+                reference.orientation.z, reference.orientation.w);
+
+            Res.result = true;
+            Res.offset.position.x = currentTcpPose.position.x - reference.position.x;
+            Res.offset.position.y = currentTcpPose.position.y - reference.position.y;
+            Res.offset.position.z = currentTcpPose.position.z - reference.position.z;
+            Res.offset.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
+        }
+        else
+        {
+            tf2::Quaternion referenceQ(Req.tcp_pose.pose.orientation.x, Req.tcp_pose.pose.orientation.y,
+                Req.tcp_pose.pose.orientation.z, Req.tcp_pose.pose.orientation.w);
+
+            Res.result = true;
+            Res.offset.position.x = currentTcpPose.position.x - Req.tcp_pose.pose.position.x;
+            Res.offset.position.y = currentTcpPose.position.y - Req.tcp_pose.pose.position.y;
+            Res.offset.position.z = currentTcpPose.position.z - Req.tcp_pose.pose.position.z;
+            Res.offset.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
+        }
 
         return Res.result;
     }
