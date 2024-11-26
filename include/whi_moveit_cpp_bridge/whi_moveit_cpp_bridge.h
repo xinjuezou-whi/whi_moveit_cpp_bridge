@@ -23,7 +23,7 @@ Changelog:
 #include <whi_interfaces/WhiSrvTcpPose.h>
 #include <whi_interfaces/WhiSrvJointPose.h>
 #include <whi_interfaces/WhiSrvJointNames.h>
-#include <whi_interfaces/WhiSrvTcpOffset.h>
+#include <whi_interfaces/WhiSrvTcpDifference.h>
 #include <whi_interfaces/WhiMotionState.h>
 
 #include <ros/ros.h>
@@ -57,8 +57,8 @@ namespace whi_moveit_cpp_bridge
             whi_interfaces::WhiSrvJointPose::Response& Res);
         bool onServiceJointNames(whi_interfaces::WhiSrvJointNames::Request& Req,
             whi_interfaces::WhiSrvJointNames::Response& Res);
-        bool onServiceTcpOffset(whi_interfaces::WhiSrvTcpOffset::Request& Req,
-            whi_interfaces::WhiSrvTcpOffset::Response& Res);
+        bool onServiceTcpDifference(whi_interfaces::WhiSrvTcpDifference::Request& Req,
+            whi_interfaces::WhiSrvTcpDifference::Response& Res);
         bool trans2TargetFrame(const std::string& DstFrame,
             const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut);
         void loadInitPlanParams();
