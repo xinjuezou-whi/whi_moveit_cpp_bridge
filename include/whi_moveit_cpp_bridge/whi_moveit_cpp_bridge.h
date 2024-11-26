@@ -78,7 +78,7 @@ namespace whi_moveit_cpp_bridge
         std::unique_ptr<ros::ServiceServer> target_tcp_srv_{ nullptr };
         std::unique_ptr<ros::ServiceServer> target_joint_srv_{ nullptr };
         std::unique_ptr<ros::ServiceServer> joint_names_srv_{ nullptr };
-        std::unique_ptr<ros::ServiceServer> tcp_offset_srv_{ nullptr };
+        std::unique_ptr<ros::ServiceServer> tcp_difference_srv_{ nullptr };
         std::unique_ptr<ros::Subscriber> arm_state_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> estop_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };

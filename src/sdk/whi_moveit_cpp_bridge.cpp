@@ -125,7 +125,7 @@ namespace whi_moveit_cpp_bridge
         joint_names_srv_ = std::make_unique<ros::ServiceServer>(
             node_handle_->advertiseService("joint_names", &MoveItCppBridge::onServiceJointNames, this));
         // advertise tcp offset service
-        tcp_offset_srv_ = std::make_unique<ros::ServiceServer>(
+        tcp_difference_srv_ = std::make_unique<ros::ServiceServer>(
             node_handle_->advertiseService("tcp_difference", &MoveItCppBridge::onServiceTcpDifference, this));
 
         // subscribe to arm motion state
