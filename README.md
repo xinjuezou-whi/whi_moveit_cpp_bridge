@@ -80,6 +80,24 @@ rosservice call /whi_moveit_cpp_bridge/joint_names
 ```
 ![image](https://github.com/user-attachments/assets/6c5ff956-2900-4b1c-b630-b2bfb019c666)
 
+**tcp_difference**(whi_interfaces::WhiSrvTcpDifference)
+
+Get the offset of TCP between the current state and a specified reference state. The reference state has three types: 1 pose group, 2 joint position, 3 TCP pose
+
+An example of the difference to the pose group:
+```
+rosservice call /whi_moveit_cpp_bridge/tcp_difference "{pose_group: 'ready_inspection'}"
+```
+
+An example of the difference to the joint position:
+```
+rosservice call /whi_moveit_cpp_bridge/tcp_difference "{joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}}"
+```
+
+An example of the difference to the TCP pose:
+```
+rosservice call /whi_moveit_cpp_bridge/tcp_difference "{tcp_pose: {pose:{position: {x: 0.0, y: 0.1, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}"
+```
 
 ## Usage
 For a quick validation, set the argument "controller" to "fake", for controlling a real arm, please refer to the arm's hardware interface for its controller name:
