@@ -158,7 +158,11 @@ namespace whi_moveit_cpp_bridge
         if (estopped_)
         {
             ROS_WARN_STREAM("cannot execute pose action, EStop is active");
-
+            return false;
+        }
+        if (executing_.load())
+        {
+            ROS_WARN_STREAM("there is motion executing");
             return false;
         }
 
@@ -360,7 +364,9 @@ namespace whi_moveit_cpp_bridge
             auto solution = planning_components_->plan(params);
             if (solution)
             {
+                executing_.store(true);
                 bool res = planning_components_->execute();
+                executing_.store(false);
                 if (is_arm_fault_.load())
                 {
                     is_arm_fault_.store(false);
@@ -426,7 +432,9 @@ namespace whi_moveit_cpp_bridge
         auto solution = planning_components_->plan(params);
         if (solution)
         {
+            executing_.store(true);
             bool res = planning_components_->execute();
+            executing_.store(false);
             if (is_arm_fault_.load())
             {
                 is_arm_fault_.store(false);
@@ -434,6 +442,7 @@ namespace whi_moveit_cpp_bridge
 
                 ROS_ERROR_STREAM("protective stop encountered");
             }
+
             return res;
         }
         else

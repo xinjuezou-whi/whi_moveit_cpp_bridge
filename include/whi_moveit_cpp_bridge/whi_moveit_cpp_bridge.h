@@ -32,6 +32,7 @@ Changelog:
 #include <std_msgs/Bool.h>
 
 #include <memory>
+#include <atomic>
 
 namespace whi_moveit_cpp_bridge
 {
@@ -94,5 +95,6 @@ namespace whi_moveit_cpp_bridge
         std::vector<double> cartesian_precision_{ 0.01, 0.01 };
         std::string eef_link_{ "eef" };
         bool estopped_{ false };
+        std::atomic_bool executing_{ false };
 	};
 } // namespace whi_moveit_cpp_bridge
