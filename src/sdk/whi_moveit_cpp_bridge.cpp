@@ -301,11 +301,6 @@ namespace whi_moveit_cpp_bridge
                 int tryCount = 0;
                 do
                 {
-                    foundIk = startState->setFromIK(joint_model_group_, targetPose.pose);
-                } while (++tryCount < max_try_count_ && !foundIk);
-
-                if (foundIk)
-                {
                     // depending on the planning problem MoveIt chooses between
                     // ``joint space`` and ``cartesian space`` for problem representation.
                     // Setting the planner group parameter ``enforce_joint_model_state_space:true`` in
@@ -318,24 +313,20 @@ namespace whi_moveit_cpp_bridge
                     // by enforcing ``joint space`` the planning process will use rejection
                     // sampling to find valid requests. Please note that this might
                     // increase planning time considerably.
-                    moveit_msgs::Constraints constraints;
-                    // // first let the pose of contraint meet the target pose
-                    // std::vector<double> currentJointPositions;
-                    // startState->copyJointGroupPositions(joint_model_group_, currentJointPositions);
-                    // auto jointsName = joint_model_group_->getJointModelNames();
-                    constraints.joint_constraints = Pose.joint_constraints;
-                    // for (auto& it : constraints.joint_constraints)
-                    // {
-                    //     auto found = std::find(jointsName.begin(), jointsName.end(), it.joint_name);
-                    //     if (found != jointsName.end())
-                    //     {
-                    //         int index = std::distance(jointsName.begin(), found);
-                    //         it.position = currentJointPositions[index];
-                    //     }
-                    // }
-                    // // then set the constraints
-                    planning_components_->setPathConstraints(constraints);
 
+                    // set the constraints
+                    moveit_msgs::Constraints jc;
+                    jc.joint_constraints = Pose.joint_constraints;
+                    planning_components_->setPathConstraints(jc);
+                    // trajectory constraints has no effect so far
+                    // moveit_msgs::TrajectoryConstraints constraints;
+                    // constraints.constraints.push_back(jc);
+                    // planning_components_->setTrajectoryConstraints(constraints);
+                    foundIk = startState->setFromIK(joint_model_group_, targetPose.pose);
+                } while (++tryCount < max_try_count_ && !foundIk);
+
+                if (foundIk)
+                {
                     planning_components_->setGoal(*startState);
                 }
                 else
@@ -347,6 +338,10 @@ namespace whi_moveit_cpp_bridge
         else
         {
             foundIk = true;
+            // set the constraints
+            moveit_msgs::Constraints jc;
+            jc.joint_constraints = Pose.joint_constraints;
+            planning_components_->setPathConstraints(jc);
             planning_components_->setGoal(Pose.pose_group);
         }
 
