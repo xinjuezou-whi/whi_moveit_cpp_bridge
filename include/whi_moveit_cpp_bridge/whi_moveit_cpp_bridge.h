@@ -40,7 +40,7 @@ namespace whi_moveit_cpp_bridge
 	{
     public:
         MoveItCppBridge(std::shared_ptr<ros::NodeHandle>& NodeHandle);
-        ~MoveItCppBridge() = default;
+        ~MoveItCppBridge();
 
     protected:
         void init();
@@ -65,6 +65,7 @@ namespace whi_moveit_cpp_bridge
         void loadInitPlanParams();
         bool checkPlanned(const moveit::core::RobotState& CurrentState,
             const moveit::core::RobotState& LastPlannedWaypointState);
+        void executeInitPoseGroup();
 
     protected:
         std::shared_ptr<ros::NodeHandle> node_handle_{ nullptr };
@@ -96,5 +97,6 @@ namespace whi_moveit_cpp_bridge
         std::string eef_link_{ "eef" };
         bool estopped_{ false };
         std::atomic_bool executing_{ false };
+        std::vector<std::string> init_pose_groups_;
 	};
 } // namespace whi_moveit_cpp_bridge

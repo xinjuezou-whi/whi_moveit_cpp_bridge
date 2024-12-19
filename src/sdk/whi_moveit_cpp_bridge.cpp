@@ -36,6 +36,12 @@ namespace whi_moveit_cpp_bridge
         init();
     }
 
+    MoveItCppBridge::~MoveItCppBridge()
+    {
+        // execute init pose
+        executeInitPoseGroup();
+    }
+
     void MoveItCppBridge::init()
     {
         // check if controller is fake
@@ -151,6 +157,10 @@ namespace whi_moveit_cpp_bridge
         std_msgs::Bool msg;
         msg.data = true;
         state_pub_->publish(msg);
+
+        // execute init pose
+        node_handle_->getParam("init_pose_groups", init_pose_groups_);
+        executeInitPoseGroup();
     }
 
     bool MoveItCppBridge::preExecution() const
@@ -631,4 +641,14 @@ namespace whi_moveit_cpp_bridge
         return succeed;
     }
 
+    void MoveItCppBridge::executeInitPoseGroup()
+    {
+        for (const auto& it : init_pose_groups_)
+        {
+            whi_interfaces::WhiTcpPose poseGroup;
+            poseGroup.pose_group = it;
+            execute(poseGroup);
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+    }
 } // namespace whi_moveit_cpp_bridge
