@@ -24,6 +24,7 @@ Changelog:
 #include <whi_interfaces/WhiSrvJointPose.h>
 #include <whi_interfaces/WhiSrvJointNames.h>
 #include <whi_interfaces/WhiSrvTcpDifference.h>
+#include <whi_interfaces/WhiSrvCurrentTcpPose.h>
 #include <whi_interfaces/WhiMotionState.h>
 
 #include <ros/ros.h>
@@ -60,6 +61,8 @@ namespace whi_moveit_cpp_bridge
             whi_interfaces::WhiSrvJointNames::Response& Res);
         bool onServiceTcpDifference(whi_interfaces::WhiSrvTcpDifference::Request& Req,
             whi_interfaces::WhiSrvTcpDifference::Response& Res);
+        bool onServiceCurrentTcpPose(whi_interfaces::WhiSrvCurrentTcpPose::Request& Req,
+            whi_interfaces::WhiSrvCurrentTcpPose::Response& Res);
         bool trans2TargetFrame(const std::string& DstFrame,
             const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut);
         void loadInitPlanParams();
@@ -81,6 +84,7 @@ namespace whi_moveit_cpp_bridge
         std::unique_ptr<ros::ServiceServer> target_joint_srv_{ nullptr };
         std::unique_ptr<ros::ServiceServer> joint_names_srv_{ nullptr };
         std::unique_ptr<ros::ServiceServer> tcp_difference_srv_{ nullptr };
+        std::unique_ptr<ros::ServiceServer> current_tcp_pose_srv_{ nullptr };
         std::unique_ptr<ros::Subscriber> arm_state_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> estop_sub_{ nullptr };
         std::unique_ptr<ros::Subscriber> motion_state_sub_{ nullptr };

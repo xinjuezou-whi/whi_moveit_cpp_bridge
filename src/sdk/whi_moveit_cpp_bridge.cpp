@@ -133,6 +133,9 @@ namespace whi_moveit_cpp_bridge
         // advertise tcp offset service
         tcp_difference_srv_ = std::make_unique<ros::ServiceServer>(
             node_handle_->advertiseService("tcp_difference", &MoveItCppBridge::onServiceTcpDifference, this));
+        // advertise current tcp pose
+        current_tcp_pose_srv_ = std::make_unique<ros::ServiceServer>(
+            node_handle_->advertiseService("tcp_current", &MoveItCppBridge::onServiceCurrentTcpPose, this));
 
         // subscribe to arm motion state
         std::string stateTopic;
@@ -587,6 +590,16 @@ namespace whi_moveit_cpp_bridge
             Res.difference.position.z = currentTcpPose.position.z - Req.tcp_pose.pose.position.z;
             Res.difference.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
         }
+
+        return Res.result;
+    }
+
+    bool MoveItCppBridge::onServiceCurrentTcpPose(whi_interfaces::WhiSrvCurrentTcpPose::Request& Req,
+        whi_interfaces::WhiSrvCurrentTcpPose::Response& Res)
+    {
+        auto state = moveit_cpp_->getCurrentState();
+        Res.pose = tf2::toMsg(state->getGlobalLinkTransform(eef_link_));
+        Res.result = true;
 
         return Res.result;
     }
