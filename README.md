@@ -99,6 +99,14 @@ An example of the difference to the TCP pose:
 rosservice call /whi_moveit_cpp_bridge/tcp_difference "{tcp_pose: {pose:{position: {x: 0.0, y: 0.1, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}"
 ```
 
+**tcp_current**(whi_interfaces::WhiSrvCurrentTcpPose)
+
+Use this service to check the current TCP pose:
+```
+rosservice call /whi_moveit_cpp_bridge/tcp_current
+```
+![image](https://github.com/user-attachments/assets/a09a0009-149d-488f-bcf6-49b747538733)
+
 ## Usage
 For a quick validation, set the argument "controller" to "fake", for controlling a real arm, please refer to the arm's hardware interface for its controller name:
 
