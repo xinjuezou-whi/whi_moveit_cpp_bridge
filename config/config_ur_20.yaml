@@ -3,3 +3,4 @@ whi_moveit_cpp_bridge:
   planning_group: manipulator
   eef_link: wrist_3_link
   arm_state_topic: arm_motion_state
+  link_index_map: {"ur5e_shoulder_pan_joint": 0, "ur5e_shoulder_lift_joint": 1, "ur5e_elbow_joint": 2, "ur5e_wrist_1_joint": 3, "ur5e_wrist_2_joint": 4, "ur5e_wrist_3_joint": 5}
