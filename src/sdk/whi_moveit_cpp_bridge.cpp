@@ -95,6 +95,7 @@ namespace whi_moveit_cpp_bridge
         node_handle_->param("cartesian_traj_max_step", cartesian_traj_max_step_, 0.01);
         node_handle_->getParam("cartesian_precision", cartesian_precision_);
         node_handle_->param("eef_link", eef_link_, std::string("eef"));
+        node_handle_->getParam("link_index_map", link_index_map_);
 
         try
         {
@@ -539,9 +540,22 @@ namespace whi_moveit_cpp_bridge
             if (!jointValues.empty())
             {
                 std::vector<double> jointPositions;
-                for (const auto& it : jointValues)
+
+                // sort joint values with ascending order
+                if (link_index_map_.size() == jointValues.size())
                 {
-                    jointPositions.push_back(it.second);
+                    jointPositions.resize(link_index_map_.size());
+                    for (const auto& it : link_index_map_)
+                    {
+                        jointPositions[it.second] = jointValues[it.first];
+                    }
+                }
+                else
+                {
+                    for (const auto& it : jointValues)
+                    {
+                        jointPositions.push_back(it.second);
+                    }
                 }
 
                 state->setJointGroupPositions(joint_model_group_, jointPositions);
