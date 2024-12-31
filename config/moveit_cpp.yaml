@@ -26,4 +26,4 @@ max_try_count: 30
 cartesian_fraction: 0.95
 cartesian_traj_max_step: 0.1
 cartesian_precision: [0.005, 0.01]
-init_pose_groups: ["ready_inspection"]
+init_pose_groups: {"fold_inspection": 0.5}

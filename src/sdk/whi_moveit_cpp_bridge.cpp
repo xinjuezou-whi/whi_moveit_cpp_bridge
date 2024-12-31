@@ -673,7 +673,9 @@ namespace whi_moveit_cpp_bridge
         for (const auto& it : init_pose_groups_)
         {
             whi_interfaces::WhiTcpPose poseGroup;
-            poseGroup.pose_group = it;
+            poseGroup.pose_group = it.first;
+            poseGroup.velocity_scale = it.second;
+            poseGroup.acceleration_scale = it.second;
             execute(poseGroup);
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }

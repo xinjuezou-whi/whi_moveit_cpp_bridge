@@ -101,7 +101,7 @@ namespace whi_moveit_cpp_bridge
         std::string eef_link_{ "eef" };
         bool estopped_{ false };
         std::atomic_bool executing_{ false };
-        std::vector<std::string> init_pose_groups_;
+        std::map<std::string, double> init_pose_groups_;
         std::map<std::string, int> link_index_map_;
 	};
 } // namespace whi_moveit_cpp_bridge
