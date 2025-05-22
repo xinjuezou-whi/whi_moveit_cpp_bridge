@@ -145,11 +145,11 @@ namespace whi_moveit_cpp_bridge
 		    node_handle_ns_free_->subscribe<whi_interfaces::WhiMotionState>(stateTopic, 10,
 		    std::bind(&MoveItCppBridge::callbackArmMotionState, this, std::placeholders::_1)));
         // subscribe estop topic
-        std::string estopTopic;
-        node_handle_->param("estop_topic", estopTopic, std::string("estop"));
+        std::string swEstopTopic;
+        node_handle_->param("estop_topic", swEstopTopic, std::string("estop"));
         estop_sub_ = std::make_unique<ros::Subscriber>(
-		    node_handle_ns_free_->subscribe<std_msgs::Bool>(estopTopic, 10,
-		    std::bind(&MoveItCppBridge::callbackEstop, this, std::placeholders::_1)));
+		    node_handle_ns_free_->subscribe<std_msgs::Bool>(swEstopTopic, 10,
+		    std::bind(&MoveItCppBridge::callbackSwEstop, this, std::placeholders::_1)));
         // subscribe motion state topic
         std::string motionStateTopic;
         node_handle_->param("motion_state_topic", motionStateTopic, std::string("motion_state"));
@@ -169,7 +169,7 @@ namespace whi_moveit_cpp_bridge
 
     bool MoveItCppBridge::preExecution() const
     {
-        if (estopped_)
+        if (estopped_ || sw_estopped_)
         {
             ROS_WARN_STREAM("cannot execute pose action, EStop is active");
             return false;
@@ -486,16 +486,16 @@ namespace whi_moveit_cpp_bridge
             moveit_cpp_->getTrajectoryExecutionManagerNonConst()->stopExecution();
             estopped_ = true;
         }
-        else if (Msg->state == whi_interfaces::WhiMotionState::STA_ESTOP_CLEAR)
+        else if (Msg->state == whi_interfaces::WhiMotionState::STA_STANDBY)
         {
             estopped_ = false;
         }
     }
 
-    void MoveItCppBridge::callbackEstop(const std_msgs::Bool::ConstPtr& Msg)
+    void MoveItCppBridge::callbackSwEstop(const std_msgs::Bool::ConstPtr& Msg)
     {
-        estopped_ = Msg->data;
-        if (estopped_)
+        sw_estopped_ = Msg->data;
+        if (sw_estopped_)
         {
             moveit_cpp_->getTrajectoryExecutionManagerNonConst()->stopExecution();
         }

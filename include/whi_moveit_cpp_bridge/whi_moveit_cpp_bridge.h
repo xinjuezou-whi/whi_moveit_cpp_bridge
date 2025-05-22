@@ -52,7 +52,7 @@ namespace whi_moveit_cpp_bridge
         void callbackJointPose(const whi_interfaces::WhiJointPose::ConstPtr& Msg);
         void callbackArmMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
         void callbackMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg);
-        void callbackEstop(const std_msgs::Bool::ConstPtr& Msg);
+        void callbackSwEstop(const std_msgs::Bool::ConstPtr& Msg);
         bool onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
             whi_interfaces::WhiSrvTcpPose::Response& Res);
         bool onServiceJointPose(whi_interfaces::WhiSrvJointPose::Request& Req,
@@ -100,6 +100,7 @@ namespace whi_moveit_cpp_bridge
         std::vector<double> cartesian_precision_{ 0.01, 0.01 };
         std::string eef_link_{ "eef" };
         bool estopped_{ false };
+        bool sw_estopped_{ false };
         std::atomic_bool executing_{ false };
         std::map<std::string, double> init_pose_groups_;
         std::map<std::string, int> link_index_map_;
