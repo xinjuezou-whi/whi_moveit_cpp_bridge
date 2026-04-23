@@ -1,29 +1,34 @@
 planning_scene_monitor_options:
-  name: planning_scene_monitor
-  robot_description: robot_description
-  joint_state_topic: whi_arm_interface/joint_states #joint_states
-  attached_collision_object_topic: planning_scene_monitor
-  publish_planning_scene_topic: publish_planning_scene
-  monitored_planning_scene_topic: monitored_planning_scene
-  wait_for_initial_state_timeout: 10.0
+  ros__parameters:
+    name: planning_scene_monitor
+    robot_description: robot_description
+    joint_state_topic: whi_arm_interface/joint_states #joint_states
+    attached_collision_object_topic: planning_scene_monitor
+    publish_planning_scene_topic: publish_planning_scene
+    monitored_planning_scene_topic: monitored_planning_scene
+    wait_for_initial_state_timeout: 10.0
 
 planning_pipelines:
-  pipeline_names:
-    - ompl
+  ros__parameters:
+    pipeline_names:
+      - ompl
 
 plan_request_params:
-  planning_attempts: 1
-  planning_pipeline: ompl
-  max_velocity_scaling_factor: 1.0
-  max_acceleration_scaling_factor: 1.0
+  ros__parameters:
+    planning_attempts: 1
+    planning_pipeline: ompl
+    max_velocity_scaling_factor: 1.0
+    max_acceleration_scaling_factor: 1.0
 
 # node params
-arm_ready_service: whi_arm_interface/arm_ready #whi_ur_robot_driver_bridge/arm_ready
-estop_topic: estop
-motion_state_topic: NaviBOT/motion_state
-wait_duration: 1.0 # second
-max_try_count: 30
-cartesian_fraction: 0.95
-cartesian_traj_max_step: 0.1
-cartesian_precision: [0.005, 0.01]
-init_pose_groups: {"fold_inspection": 0.5}
+whi_moveit_cpp_bridge:
+  ros__parameters:
+    arm_ready_service: whi_arm_interface/arm_ready #whi_ur_robot_driver_bridge/arm_ready
+    estop_topic: estop
+    motion_state_topic: NaviBOT/motion_state
+    wait_duration: 1.0 # second
+    max_try_count: 30
+    cartesian_fraction: 0.95
+    cartesian_traj_max_step: 0.1
+    cartesian_precision: [0.005, 0.01]
+    init_pose_groups: {"fold_inspection": 0.5}

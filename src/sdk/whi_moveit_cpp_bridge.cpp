@@ -1,5 +1,5 @@
 /******************************************************************
-MoveItCpp bridge to handle moveit commands under ROS 1
+MoveItCpp bridge to handle moveit commands under ROS 2
 
 Features:
 - advertise command service
@@ -10,19 +10,18 @@ Dependencies:
 - whi_interfaces::WhiSrvTcpPos
 - xxx
 
-Written by Xinjue Zou, xinjue.zou@outlook.com
+Written by Xinjue Zou, xinjue.zou.whi@gmail.com
 
-GNU General Public License, check LICENSE for more information.
+Apache License Version 2.0, check LICENSE for more information.
 All text above must be included in any redistribution.
 
 ******************************************************************/
 #include "whi_moveit_cpp_bridge/whi_moveit_cpp_bridge.h"
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2_eigen/tf2_eigen.h>
-#include <std_srvs/Trigger.h>
-#include <std_msgs/Bool.h>
-#include <moveit/trajectory_processing/iterative_time_parameterization.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_eigen/tf2_eigen.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <moveit/trajectory_processing/time_optimal_trajectory_generation.hpp>
 #include <moveit/robot_state/cartesian_interpolator.h> // comment if old moveitcore is required
 
 #include <thread>
@@ -30,7 +29,7 @@ All text above must be included in any redistribution.
 
 namespace whi_moveit_cpp_bridge
 {
-    MoveItCppBridge::MoveItCppBridge(std::shared_ptr<ros::NodeHandle>& NodeHandle)
+    MoveItCppBridge::MoveItCppBridge(std::shared_ptr<rclcpp::Node>& NodeHandle)
         : node_handle_(NodeHandle)
     {
         init();
@@ -46,60 +45,83 @@ namespace whi_moveit_cpp_bridge
     {
         // check if controller is fake
         bool isFake = false;
-        XmlRpc::XmlRpcValue controllerList;
-        node_handle_->getParam("controller_list", controllerList);
-        for (int i = 0; i < controllerList.size(); ++i)
-        {
-            if (static_cast<std::string>(controllerList[i]["name"]).find("fake") != std::string::npos)
-            {
-                isFake = true;
-                break;
-            }
-        }
-        state_pub_ = std::make_unique<ros::Publisher>(
-        	node_handle_->advertise<std_msgs::Bool>("moveit_cpp_state", 10));
+        // XmlRpc::XmlRpcValue controllerList;
+        // node_handle_->getParam("controller_list", controllerList);
+        // for (int i = 0; i < controllerList.size(); ++i)
+        // {
+        //     if (static_cast<std::string>(controllerList[i]["name"]).find("fake") != std::string::npos)
+        //     {
+        //         isFake = true;
+        //         break;
+        //     }
+        // }
+        state_pub_ = node_handle_->create_publisher<std_msgs::msg::Bool>("moveit_cpp_state", 10);
 
-        node_handle_ns_free_ = std::make_shared<ros::NodeHandle>();
         // initiate arm ready service client if not fake
         if (!isFake)
         {
-            node_handle_->param("wait_duration", wait_duration_, 1.0);
-            node_handle_->param("max_try_count", max_try_count_, 10);
-            std::string serviceReady;
-            node_handle_->param("arm_ready_service", serviceReady, std::string("arm_ready"));
+            node_handle_->declare_parameter("wait_duration", 1.0);
+            wait_duration_ = node_handle_->get_parameter("wait_duration").as_double();
+            node_handle_->declare_parameter("max_try_count", 10);
+            max_try_count_ = node_handle_->get_parameter("max_try_count").as_int();
+            node_handle_->declare_parameter("arm_ready_service", std::string("arm_ready"));
+            std::string serviceReady = node_handle_->get_parameter("arm_ready_service").as_string();
             if (!serviceReady.empty())
             {
-                client_arm_ready_ = std::make_unique<ros::ServiceClient>(
-                    node_handle_ns_free_->serviceClient<std_srvs::Trigger>(serviceReady));
+                client_arm_ready_ = node_handle_->create_client<std_srvs::srv::Trigger>(serviceReady);
             }
             // wait for service active
-            while (!client_arm_ready_->waitForExistence(ros::Duration(wait_duration_)))
+            while (!client_arm_ready_->wait_for_service(std::chrono::duration<double>(wait_duration_)))
             {
-                ROS_WARN_STREAM("wait for arm service...");
+                RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm service...");
                 std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
             }
             // wait for arm ready
-            std_srvs::Trigger srv;
-            while (!client_arm_ready_->call(srv))
+            bool armReady = false;
+            do
             {
-                ROS_WARN_STREAM("wait for arm ready...");
+                auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+                client_arm_ready_->async_send_request(
+                    request,
+                    [this, request, &armReady](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
+                    {
+                        if (future.get()->success)
+                        {
+                            armReady = true;
+                        }
+                        else
+                        {
+                            armReady = false;
+                        }
+                    });
+
+                RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm ready...");
                 std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
-            }
+            } while (!armReady);
         }
 
         // other params
-        node_handle_->param("tf_prefix", tf_prefix_, std::string(""));
-        node_handle_->param("planning_group", planning_group_, std::string("whi_arm"));
+        node_handle_->declare_parameter("tf_prefix", std::string(""));
+        tf_prefix_ = node_handle_->get_parameter("tf_prefix").as_string();
+        node_handle_->declare_parameter("planning_group", std::string("whi_arm"));
+        planning_group_ = node_handle_->get_parameter("planning_group").as_string();
+
         loadInitPlanParams();
-        node_handle_->param("cartesian_fraction", cartesian_fraction_, 1.0);
-        node_handle_->param("cartesian_traj_max_step", cartesian_traj_max_step_, 0.01);
-        node_handle_->getParam("cartesian_precision", cartesian_precision_);
-        node_handle_->param("eef_link", eef_link_, std::string("eef"));
-        node_handle_->getParam("link_index_map", link_index_map_);
+
+        node_handle_->declare_parameter("cartesian_fraction", 1.0);
+        cartesian_fraction_ = node_handle_->get_parameter("cartesian_fraction").as_double();
+        node_handle_->declare_parameter("cartesian_traj_max_step", 0.01);
+        cartesian_traj_max_step_ = node_handle_->get_parameter("cartesian_traj_max_step").as_double();
+        node_handle_->declare_parameter("cartesian_precision", std::vector<double>{});
+        cartesian_precision_ = node_handle_->get_parameter("cartesian_precision").as_double_array();
+        node_handle_->declare_parameter("eef_link", std::string("eef"));
+        eef_link_ = node_handle_->get_parameter("eef_link").as_string();
+        node_handle_->declare_parameters<int>("link_index_map", std::map<std::string, int>{});
+        node_handle_->get_parameters<int>("link_index_map", link_index_map_);
 
         try
         {
-            moveit_cpp_ = std::make_shared<moveit_cpp::MoveItCpp>(*node_handle_);
+            moveit_cpp_ = std::make_shared<moveit_cpp::MoveItCpp>(node_handle_);
             if (moveit_cpp_)
             {
                 moveit_cpp_->getPlanningSceneMonitorNonConst()->providePlanningSceneService();
@@ -111,59 +133,61 @@ namespace whi_moveit_cpp_bridge
         }
         catch (const std::exception& e)
         {
-            ROS_FATAL_STREAM("failed to init moveitcpp instance: " << e.what());
+            RCLCPP_FATAL_STREAM(node_handle_->get_logger(), "failed to init moveitcpp instance: " << e.what());
             return;
         }
 
         // providing the tcp_pose/joint_pose service
         std::string tcpAction("tcp_pose");
-        target_tcp_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService(tcpAction, &MoveItCppBridge::onServiceTcpPose, this));
-        target_tcp_sub_ = std::make_unique<ros::Subscriber>(
-            node_handle_->subscribe<whi_interfaces::WhiTcpPose>(tcpAction, 10,
-            std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1)));
+        target_tcp_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvTcpPose>(tcpAction,
+            std::bind(&MoveItCppBridge::onServiceTcpPose, this, std::placeholders::_1, std::placeholders::_2));
+        target_tcp_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiTcpPose>(
+            tcpAction, 10, std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1));
+
         std::string jointAction("joint_pose");
-        target_joint_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService(jointAction, &MoveItCppBridge::onServiceJointPose, this));
-        target_joint_sub_ = std::make_unique<ros::Subscriber>(
-            node_handle_->subscribe<whi_interfaces::WhiJointPose>(jointAction, 10,
-            std::bind(&MoveItCppBridge::callbackJointPose, this, std::placeholders::_1)));
+        target_joint_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvJointPose>(jointAction,
+            std::bind(&MoveItCppBridge::onServiceJointPose, this, std::placeholders::_1, std::placeholders::_2));
+        target_joint_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiJointPose>(
+            jointAction, 10, std::bind(&MoveItCppBridge::callbackJointPose, this, std::placeholders::_1));
+
         // providing joint model names service
-        joint_names_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService("joint_names", &MoveItCppBridge::onServiceJointNames, this));
+        joint_names_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvJointNames>("joint_names",
+            std::bind(&MoveItCppBridge::onServiceJointNames, this, std::placeholders::_1, std::placeholders::_2));
+
         // advertise tcp offset service
-        tcp_difference_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService("tcp_difference", &MoveItCppBridge::onServiceTcpDifference, this));
+        tcp_difference_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvTcpDifference>("tcp_difference",
+            std::bind(&MoveItCppBridge::onServiceTcpDifference, this, std::placeholders::_1, std::placeholders::_2));
+
         // advertise current tcp pose
-        current_tcp_pose_srv_ = std::make_unique<ros::ServiceServer>(
-            node_handle_->advertiseService("tcp_current", &MoveItCppBridge::onServiceCurrentTcpPose, this));
+        current_tcp_pose_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvCurrentTcpPose>("tcp_current",
+            std::bind(&MoveItCppBridge::onServiceCurrentTcpPose, this, std::placeholders::_1, std::placeholders::_2));
 
         // subscribe to arm motion state
-        std::string stateTopic;
-        node_handle_->param("arm_state_topic", stateTopic, std::string("arm_motion_state"));
-        arm_state_sub_ = std::make_unique<ros::Subscriber>(
-		    node_handle_ns_free_->subscribe<whi_interfaces::WhiMotionState>(stateTopic, 10,
-		    std::bind(&MoveItCppBridge::callbackArmMotionState, this, std::placeholders::_1)));
+        node_handle_->declare_parameter("arm_state_topic", std::string("arm_motion_state"));
+        std::string stateTopic = node_handle_->get_parameter("arm_state_topic").as_string();
+        arm_state_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiMotionState>(
+            stateTopic, 10, std::bind(&MoveItCppBridge::callbackArmMotionState, this, std::placeholders::_1));
+
         // subscribe estop topic
-        std::string swEstopTopic;
-        node_handle_->param("estop_topic", swEstopTopic, std::string("estop"));
-        estop_sub_ = std::make_unique<ros::Subscriber>(
-		    node_handle_ns_free_->subscribe<std_msgs::Bool>(swEstopTopic, 10,
-		    std::bind(&MoveItCppBridge::callbackSwEstop, this, std::placeholders::_1)));
+        node_handle_->declare_parameter("estop_topic", std::string("estop"));
+        std::string swEstopTopic = node_handle_->get_parameter("estop_topic").as_string();
+        estop_sub_ = node_handle_->create_subscription<std_msgs::msg::Bool>(
+            swEstopTopic, 10, std::bind(&MoveItCppBridge::callbackSwEstop, this, std::placeholders::_1));
+
         // subscribe motion state topic
-        std::string motionStateTopic;
-        node_handle_->param("motion_state_topic", motionStateTopic, std::string("motion_state"));
-        motion_state_sub_ = std::make_unique<ros::Subscriber>(
-		    node_handle_ns_free_->subscribe<whi_interfaces::WhiMotionState>(motionStateTopic, 10,
-		    std::bind(&MoveItCppBridge::callbackMotionState, this, std::placeholders::_1)));
+        node_handle_->declare_parameter("motion_state_topic", std::string("motion_state"));
+        std::string motionStateTopic = node_handle_->get_parameter("motion_state_topic").as_string();
+        motion_state_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiMotionState>(
+            motionStateTopic, 10, std::bind(&MoveItCppBridge::callbackMotionState, this, std::placeholders::_1));
 
         // publish state for notifying nodes that depend on me
-        std_msgs::Bool msg;
+        std_msgs::msg::Bool msg;
         msg.data = true;
         state_pub_->publish(msg);
 
         // execute init pose
-        node_handle_->getParam("init_pose_groups", init_pose_groups_);
+        node_handle_->declare_parameters<double>("init_pose_groups", std::map<std::string, double>{});
+        node_handle_->get_parameters<double>("init_pose_groups", init_pose_groups_);
         executeInitPoseGroup();
     }
 
@@ -171,36 +195,47 @@ namespace whi_moveit_cpp_bridge
     {
         if (estopped_ || sw_estopped_)
         {
-            ROS_WARN_STREAM("cannot execute pose action, EStop is active");
+            RCLCPP_WARN_STREAM(node_handle_->get_logger(), "cannot execute pose action, EStop is active");
             return false;
         }
         if (executing_.load())
         {
-            ROS_WARN_STREAM("there is motion executing");
+            RCLCPP_WARN_STREAM(node_handle_->get_logger(), "there is motion executing");
             return false;
         }
 
         int tryCount = 0;
-        std_srvs::Trigger srv;
-        while (client_arm_ready_ && !client_arm_ready_->call(srv))
+        bool armReady = false;
+        do
         {
-            if (++tryCount > max_try_count_)
-            {
-                ROS_ERROR_STREAM("cannot execute pose action, arm is not ready");
+            auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+            client_arm_ready_->async_send_request(
+                request,
+                [this, request, &armReady](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
+                {
+                    if (future.get()->success)
+                    {
+                        armReady = true;
+                    }
+                    else
+                    {
+                        armReady = false;
+                    }
+                });
 
-                return false;
-            }
-            else
-            {
-                ROS_WARN_STREAM("wait for arm ready... in " << max_try_count_ << " seconds");
-                std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
-            }
+            RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm ready... in " << max_try_count_ << " seconds");
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+        } while (!armReady && ++tryCount < max_try_count_);
+
+        if (!armReady)
+        {
+            RCLCPP_ERROR_STREAM(node_handle_->get_logger(), "cannot execute pose action, arm is not ready");
         }
 
-        return true;
+        return armReady;
     }
 
-    bool MoveItCppBridge::execute(const whi_interfaces::WhiTcpPose& Pose)
+    bool MoveItCppBridge::execute(const whi_interfaces::msg::WhiTcpPose& Pose)
     {
         if (!preExecution())
         {
@@ -213,7 +248,7 @@ namespace whi_moveit_cpp_bridge
         bool foundIk = false;
         if (Pose.pose_group.empty())
         {
-            geometry_msgs::PoseStamped targetPose = Pose.tcp_pose;
+            geometry_msgs::msg::PoseStamped targetPose = Pose.tcp_pose;
             std::string armRoot(tf_prefix_.empty() ? "" : tf_prefix_ + "/");
             armRoot += robot_model_->getRootLinkName();
             if (Pose.tcp_pose.header.frame_id != armRoot &&
@@ -221,7 +256,7 @@ namespace whi_moveit_cpp_bridge
             {
                 if (!trans2TargetFrame(armRoot, Pose.tcp_pose, targetPose))
                 {
-                    ROS_WARN_STREAM("failed to get pose transform");
+                    RCLCPP_WARN_STREAM(node_handle_->get_logger(), "failed to get pose transform");
                     return false;
                 }
 #ifdef DEBUG
@@ -252,16 +287,11 @@ namespace whi_moveit_cpp_bridge
                     double fraction = 0.0;
                     do
                     {
-                        // uncomment if old moveitcore is required
-                        // fraction = startState->computeCartesianPath(joint_model_group_, trajState, linkModel, target,
-                        //     true, cartesian_traj_max_step_, 0.0);
-                        // comment if old moveitcore is required
                         fraction = moveit::core::CartesianInterpolator::computeCartesianPath(startState.get(),
                             joint_model_group_, trajState, linkModel, target, true,
                             moveit::core::MaxEEFStep(cartesian_traj_max_step_),
                             moveit::core::CartesianPrecision{ cartesian_precision_[0], cartesian_precision_[1] },
-                            moveit::core::GroupStateValidityCallbackFn(), kinematics::KinematicsQueryOptions(),
-                            Eigen::Isometry3d::Identity());
+                            moveit::core::GroupStateValidityCallbackFn(), kinematics::KinematicsQueryOptions());
 #ifndef DEBUG
                         std::cout << "Cartersian fraction " << fraction << ", trajectory size " <<
                             trajState.size() << std::endl;
@@ -278,35 +308,35 @@ namespace whi_moveit_cpp_bridge
                             traj->addSuffixWayPoint(it, 0.0);
                         }
                         // apply the velocity and acceleration scale
-                        trajectory_processing::IterativeParabolicTimeParameterization iptp;
-                        if (iptp.computeTimeStamps(*traj, Pose.velocity_scale, Pose.acceleration_scale))
+                        trajectory_processing::TimeOptimalTrajectoryGeneration totp;
+                        if (totp.computeTimeStamps(*traj, Pose.velocity_scale, Pose.acceleration_scale))
                         {
                             // execute path
-                            bool res = moveit_cpp_->execute(planning_group_, traj);
+                            bool res = moveit_cpp_->execute(traj);
                             if (is_arm_fault_.load())
                             {
                                 is_arm_fault_.store(false);
                                 res = false;
 
-                                ROS_ERROR_STREAM("protective stop encountered");
+                                RCLCPP_ERROR_STREAM(node_handle_->get_logger(), "protective stop encountered");
                             }
                             return res;
                         }
                         else
                         {
-                            ROS_WARN_STREAM("failed to apply time parameters");
+                            RCLCPP_WARN_STREAM(node_handle_->get_logger(), "failed to apply time parameters");
                             return false;
                         }
                     }
                     else
                     {
-                        ROS_WARN_STREAM("failed to find solution");
+                        RCLCPP_WARN_STREAM(node_handle_->get_logger(), "failed to find solution");
                         return false;
                     }
                 }
                 else
                 {
-                    ROS_WARN_STREAM("link " << eef_link_ << " doesn't exit, please check the config!");
+                    RCLCPP_WARN_STREAM(node_handle_->get_logger(), "link " << eef_link_ << " doesn't exit, please check the config!");
                     return false;
                 }
             }
@@ -329,7 +359,7 @@ namespace whi_moveit_cpp_bridge
                     // increase planning time considerably.
 
                     // set the constraints
-                    moveit_msgs::Constraints jc;
+                    moveit_msgs::msg::Constraints jc;
                     jc.joint_constraints = Pose.joint_constraints;
                     planning_components_->setPathConstraints(jc);
                     // trajectory constraints has no effect so far
@@ -345,7 +375,7 @@ namespace whi_moveit_cpp_bridge
                 }
                 else
                 {
-                    ROS_ERROR_STREAM("failed to find the IK solution");
+                    RCLCPP_ERROR_STREAM(node_handle_->get_logger(), "failed to find the IK solution");
                 }
             }
         }
@@ -353,7 +383,7 @@ namespace whi_moveit_cpp_bridge
         {
             foundIk = true;
             // set the constraints
-            moveit_msgs::Constraints jc;
+            moveit_msgs::msg::Constraints jc;
             jc.joint_constraints = Pose.joint_constraints;
             planning_components_->setPathConstraints(jc);
             planning_components_->setGoal(Pose.pose_group);
@@ -374,31 +404,31 @@ namespace whi_moveit_cpp_bridge
             if (solution)
             {
                 executing_.store(true);
-                bool res = planning_components_->execute();
+                bool res = moveit_cpp_->execute(solution.trajectory);
                 executing_.store(false);
                 if (is_arm_fault_.load())
                 {
                     is_arm_fault_.store(false);
                     res = false;
 
-                    ROS_ERROR_STREAM("protective stop encountered");
+                    RCLCPP_ERROR_STREAM(node_handle_->get_logger(), "protective stop encountered");
                 }
                 return res;
             }
             else
             {
-                ROS_WARN_STREAM("failed to find path solution");
+                RCLCPP_WARN_STREAM(node_handle_->get_logger(), "failed to find path solution");
                 return false;
             }
         }
         else
         {
-            ROS_WARN_STREAM("failed to find solution");
+            RCLCPP_WARN_STREAM(node_handle_->get_logger(), "failed to find solution");
             return false;
         }
     }
 
-    bool MoveItCppBridge::execute(const whi_interfaces::WhiJointPose& Pose)
+    bool MoveItCppBridge::execute(const whi_interfaces::msg::WhiJointPose& Pose)
     {
         if (!preExecution())
         {
@@ -424,7 +454,7 @@ namespace whi_moveit_cpp_bridge
             startState->setJointGroupPositions(joint_model_group_, Pose.joint_pose.position);
         }
 
-        moveit_msgs::Constraints constraints;
+        moveit_msgs::msg::Constraints constraints;
         constraints.joint_constraints = Pose.joint_constraints;
         planning_components_->setPathConstraints(constraints);
         planning_components_->setGoal(*startState);
@@ -442,57 +472,57 @@ namespace whi_moveit_cpp_bridge
         if (solution)
         {
             executing_.store(true);
-            bool res = planning_components_->execute();
+            bool res = moveit_cpp_->execute(solution.trajectory);
             executing_.store(false);
             if (is_arm_fault_.load())
             {
                 is_arm_fault_.store(false);
                 res = false;
 
-                ROS_ERROR_STREAM("protective stop encountered");
+                RCLCPP_ERROR_STREAM(node_handle_->get_logger(), "protective stop encountered");
             }
 
             return res;
         }
         else
         {
-            ROS_WARN_STREAM("failed to find path solution");
+            RCLCPP_WARN_STREAM(node_handle_->get_logger(), "failed to find path solution");
             return false;
         }
     }
 
-    void MoveItCppBridge::callbackTcpPose(const whi_interfaces::WhiTcpPose::ConstPtr& Msg)
+    void MoveItCppBridge::callbackTcpPose(const whi_interfaces::msg::WhiTcpPose::SharedPtr Msg)
     {
         execute(*Msg);
     }
 
-    void MoveItCppBridge::callbackJointPose(const whi_interfaces::WhiJointPose::ConstPtr& Msg)
+    void MoveItCppBridge::callbackJointPose(const whi_interfaces::msg::WhiJointPose::SharedPtr Msg)
     {
         execute(*Msg);
     }
 
-    void MoveItCppBridge::callbackArmMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg)
+    void MoveItCppBridge::callbackArmMotionState(const whi_interfaces::msg::WhiMotionState::SharedPtr Msg)
     {
-        if (Msg->state == whi_interfaces::WhiMotionState::STA_FAULT)
+        if (Msg->state == whi_interfaces::msg::WhiMotionState::STA_FAULT)
         {
             is_arm_fault_.store(true);
         }
     }
 
-    void MoveItCppBridge::callbackMotionState(const whi_interfaces::WhiMotionState::ConstPtr& Msg)
+    void MoveItCppBridge::callbackMotionState(const whi_interfaces::msg::WhiMotionState::SharedPtr Msg)
     {
-        if (Msg->state == whi_interfaces::WhiMotionState::STA_ESTOP)
+        if (Msg->state == whi_interfaces::msg::WhiMotionState::STA_ESTOP)
         {
             moveit_cpp_->getTrajectoryExecutionManagerNonConst()->stopExecution();
             estopped_ = true;
         }
-        else if (Msg->state == whi_interfaces::WhiMotionState::STA_STANDBY)
+        else if (Msg->state == whi_interfaces::msg::WhiMotionState::STA_STANDBY)
         {
             estopped_ = false;
         }
     }
 
-    void MoveItCppBridge::callbackSwEstop(const std_msgs::Bool::ConstPtr& Msg)
+    void MoveItCppBridge::callbackSwEstop(const std_msgs::msg::Bool::SharedPtr Msg)
     {
         sw_estopped_ = Msg->data;
         if (sw_estopped_)
@@ -501,42 +531,36 @@ namespace whi_moveit_cpp_bridge
         }
     }
 
-    bool MoveItCppBridge::onServiceTcpPose(whi_interfaces::WhiSrvTcpPose::Request& Req,
-        whi_interfaces::WhiSrvTcpPose::Response& Res)
+    void MoveItCppBridge::onServiceTcpPose(const std::shared_ptr<whi_interfaces::srv::WhiSrvTcpPose::Request> Request,
+        std::shared_ptr<whi_interfaces::srv::WhiSrvTcpPose::Response> Response)
     {
-        Res.result = execute(Req.pose);
-
-        return Res.result;
+        Response->result = execute(Request->pose);
     }
 
-    bool MoveItCppBridge::onServiceJointPose(whi_interfaces::WhiSrvJointPose::Request& Req,
-        whi_interfaces::WhiSrvJointPose::Response& Res)
+    void MoveItCppBridge::onServiceJointPose(const std::shared_ptr<whi_interfaces::srv::WhiSrvJointPose::Request> Request,
+        std::shared_ptr<whi_interfaces::srv::WhiSrvJointPose::Response> Response)
     {
-        Res.result = execute(Req.pose);
-
-        return Res.result;
+        Response->result = execute(Request->pose);
     }
 
-    bool MoveItCppBridge::onServiceJointNames(whi_interfaces::WhiSrvJointNames::Request& Req,
-        whi_interfaces::WhiSrvJointNames::Response& Res)
+    void MoveItCppBridge::onServiceJointNames(const std::shared_ptr<whi_interfaces::srv::WhiSrvJointNames::Request> Request,
+        std::shared_ptr<whi_interfaces::srv::WhiSrvJointNames::Response> Response)
     {
-        Res.joint_names = joint_model_group_->getJointModelNames();
-        Res.result = Res.joint_names.empty() ? false : true;
-
-        return Res.result;
+        Response->joint_names = joint_model_group_->getJointModelNames();
+        Response->result = Response->joint_names.empty() ? false : true;
     }
 
-    bool MoveItCppBridge::onServiceTcpDifference(whi_interfaces::WhiSrvTcpDifference::Request& Req,
-        whi_interfaces::WhiSrvTcpDifference::Response& Res)
+    void MoveItCppBridge::onServiceTcpDifference(const std::shared_ptr<whi_interfaces::srv::WhiSrvTcpDifference::Request> Request,
+        std::shared_ptr<whi_interfaces::srv::WhiSrvTcpDifference::Response> Response)
     {
         auto state = moveit_cpp_->getCurrentState();
-        geometry_msgs::Pose currentTcpPose = tf2::toMsg(state->getGlobalLinkTransform(eef_link_));
+        geometry_msgs::msg::Pose currentTcpPose = tf2::toMsg(state->getGlobalLinkTransform(eef_link_));
         tf2::Quaternion currentQ(currentTcpPose.orientation.x, currentTcpPose.orientation.y,
             currentTcpPose.orientation.z, currentTcpPose.orientation.w);
 
-        if (!Req.pose_group.empty())
+        if (!Request->pose_group.empty())
         {
-            auto jointValues = planning_components_->getNamedTargetStateValues(Req.pose_group);
+            auto jointValues = planning_components_->getNamedTargetStateValues(Request->pose_group);
             if (!jointValues.empty())
             {
                 std::vector<double> jointPositions;
@@ -566,20 +590,20 @@ namespace whi_moveit_cpp_bridge
                 tf2::Quaternion referenceQ(reference.orientation.x, reference.orientation.y,
                     reference.orientation.z, reference.orientation.w);
 
-                Res.result = true;
-                Res.difference.position.x = currentTcpPose.position.x - reference.position.x;
-                Res.difference.position.y = currentTcpPose.position.y - reference.position.y;
-                Res.difference.position.z = currentTcpPose.position.z - reference.position.z;
-                Res.difference.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
+                Response->result = true;
+                Response->difference.position.x = currentTcpPose.position.x - reference.position.x;
+                Response->difference.position.y = currentTcpPose.position.y - reference.position.y;
+                Response->difference.position.z = currentTcpPose.position.z - reference.position.z;
+                Response->difference.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
             }
             else
             {
-                Res.result = false;
+                Response->result = false;
             }
         }
-        else if (!Req.joint_pose.position.empty())
+        else if (!Request->joint_pose.position.empty())
         {
-            state->setJointGroupPositions(joint_model_group_, Req.joint_pose.position);
+            state->setJointGroupPositions(joint_model_group_, Request->joint_pose.position);
 
             // forward kinematics
             auto transform = state->getGlobalLinkTransform(eef_link_);
@@ -587,63 +611,67 @@ namespace whi_moveit_cpp_bridge
             tf2::Quaternion referenceQ(reference.orientation.x, reference.orientation.y,
                 reference.orientation.z, reference.orientation.w);
 
-            Res.result = true;
-            Res.difference.position.x = currentTcpPose.position.x - reference.position.x;
-            Res.difference.position.y = currentTcpPose.position.y - reference.position.y;
-            Res.difference.position.z = currentTcpPose.position.z - reference.position.z;
-            Res.difference.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
+            Response->result = true;
+            Response->difference.position.x = currentTcpPose.position.x - reference.position.x;
+            Response->difference.position.y = currentTcpPose.position.y - reference.position.y;
+            Response->difference.position.z = currentTcpPose.position.z - reference.position.z;
+            Response->difference.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
         }
         else
         {
-            tf2::Quaternion referenceQ(Req.tcp_pose.pose.orientation.x, Req.tcp_pose.pose.orientation.y,
-                Req.tcp_pose.pose.orientation.z, Req.tcp_pose.pose.orientation.w);
+            tf2::Quaternion referenceQ(Request->tcp_pose.pose.orientation.x, Request->tcp_pose.pose.orientation.y,
+                Request->tcp_pose.pose.orientation.z, Request->tcp_pose.pose.orientation.w);
 
-            Res.result = true;
-            Res.difference.position.x = currentTcpPose.position.x - Req.tcp_pose.pose.position.x;
-            Res.difference.position.y = currentTcpPose.position.y - Req.tcp_pose.pose.position.y;
-            Res.difference.position.z = currentTcpPose.position.z - Req.tcp_pose.pose.position.z;
-            Res.difference.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
+            Response->result = true;
+            Response->difference.position.x = currentTcpPose.position.x - Request->tcp_pose.pose.position.x;
+            Response->difference.position.y = currentTcpPose.position.y - Request->tcp_pose.pose.position.y;
+            Response->difference.position.z = currentTcpPose.position.z - Request->tcp_pose.pose.position.z;
+            Response->difference.orientation = tf2::toMsg(currentQ * referenceQ.inverse());
         }
-
-        return Res.result;
     }
 
-    bool MoveItCppBridge::onServiceCurrentTcpPose(whi_interfaces::WhiSrvCurrentTcpPose::Request& Req,
-        whi_interfaces::WhiSrvCurrentTcpPose::Response& Res)
+    void MoveItCppBridge::onServiceCurrentTcpPose(const std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentTcpPose::Request> Request,
+        std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentTcpPose::Response> Response)
     {
         auto state = moveit_cpp_->getCurrentState();
-        Res.pose = tf2::toMsg(state->getGlobalLinkTransform(eef_link_));
-        Res.result = true;
-
-        return Res.result;
+        Response->pose = tf2::toMsg(state->getGlobalLinkTransform(eef_link_));
+        Response->result = true;
     }
 
     bool MoveItCppBridge::trans2TargetFrame(const std::string& DstFrame,
-        const geometry_msgs::PoseStamped& PoseIn, geometry_msgs::PoseStamped& PoseOut)
+        const geometry_msgs::msg::PoseStamped& PoseIn, geometry_msgs::msg::PoseStamped& PoseOut)
     {
         try
         {
-            PoseOut = moveit_cpp_->getTFBuffer()->transform(PoseIn, DstFrame, ros::Duration(0.0));
+            PoseOut = moveit_cpp_->getTFBuffer()->transform(PoseIn, DstFrame);
             return true;
         }
         catch (tf2::TransformException &e)
         {
-            ROS_ERROR_STREAM(e.what());
+            RCLCPP_ERROR_STREAM(node_handle_->get_logger(), e.what());
             return false;
         }
     }
 
     void MoveItCppBridge::loadInitPlanParams()
     {
-        node_handle_->param("plan_request_params/planner_id", init_plan_parameters_.planner_id, std::string(""));
-        node_handle_->param("plan_request_params/planning_pipeline",
-            init_plan_parameters_.planning_pipeline, std::string(""));
-        node_handle_->param("plan_request_params/planning_time", init_plan_parameters_.planning_time, 1.0);
-        node_handle_->param("plan_request_params/planning_attempts", init_plan_parameters_.planning_attempts, 5);
-        node_handle_->param("plan_request_params/max_velocity_scaling_factor",
-            init_plan_parameters_.max_velocity_scaling_factor, 1.0);
-        node_handle_->param("plan_request_params/max_acceleration_scaling_factor",
-            init_plan_parameters_.max_acceleration_scaling_factor, 1.0);
+        node_handle_->declare_parameter("plan_request_params.planner_id", std::string(""));
+        init_plan_parameters_.planner_id = node_handle_->get_parameter("plan_request_params.planner_id").as_string();
+
+        node_handle_->declare_parameter("plan_request_params.planning_pipeline", std::string(""));
+        init_plan_parameters_.planning_pipeline = node_handle_->get_parameter("plan_request_params.planning_pipeline").as_string();
+
+        node_handle_->declare_parameter("plan_request_params.planning_time", 1.0);
+        init_plan_parameters_.planning_time = node_handle_->get_parameter("plan_request_params.planning_time").as_double();
+
+        node_handle_->declare_parameter("plan_request_params.planning_attempts", 5);
+        init_plan_parameters_.planning_attempts = node_handle_->get_parameter("plan_request_params.planning_attempts").as_int();
+
+        node_handle_->declare_parameter("plan_request_params.max_velocity_scaling_factor", 1.0);
+        init_plan_parameters_.max_velocity_scaling_factor = node_handle_->get_parameter("plan_request_params.max_velocity_scaling_factor").as_double();
+
+        node_handle_->declare_parameter("plan_request_params.max_acceleration_scaling_factor", 1.0);
+        init_plan_parameters_.max_acceleration_scaling_factor = node_handle_->get_parameter("plan_request_params.max_acceleration_scaling_factor").as_double();
 #ifdef DEBUG
         std::cout << "request params:" << init_plan_parameters_.planner_id << ","
             << init_plan_parameters_.planning_pipeline<< ","
@@ -672,7 +700,7 @@ namespace whi_moveit_cpp_bridge
     {
         for (const auto& it : init_pose_groups_)
         {
-            whi_interfaces::WhiTcpPose poseGroup;
+            whi_interfaces::msg::WhiTcpPose poseGroup;
             poseGroup.pose_group = it.first;
             poseGroup.velocity_scale = it.second;
             poseGroup.acceleration_scale = it.second;

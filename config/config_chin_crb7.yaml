@@ -1,5 +1,6 @@
 whi_moveit_cpp_bridge:
-  tf_prefix: "$(arg robot_name)"
-  planning_group: chin_crb7
-  eef_link: chin_link_6
-  arm_state_topic: arm_motion_state
+  ros__parameters:
+    tf_prefix: "$(arg robot_name)"
+    planning_group: chin_crb7
+    eef_link: chin_link_6
+    arm_state_topic: arm_motion_state

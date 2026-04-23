@@ -6,18 +6,19 @@ Features:
 - message and service of plan and execute
 - xxx
 
-Written by Xinjue Zou, xinjue.zou@outlook.com
+Written by Xinjue Zou, xinjue.zou.whi@gmail.com
 
-GNU General Public License, check LICENSE for more information.
+Apache License Version 2.0, check LICENSE for more information.
 All text above must be included in any redistribution.
 
 Changelog:
 2023-08-03: Initial version
-2022-xx-xx: xxx
+2026-04-24: Migrate to ROS 2
+2026-xx-xx: xxx
 ******************************************************************/
 #include "whi_moveit_cpp_bridge/whi_moveit_cpp_bridge.h"
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <iostream>
 #include <signal.h>
@@ -35,13 +36,14 @@ void signalHandler(int Signal)
 int main(int argc, char** argv)
 {
 	/// node version and copyright announcement
-	std::cout << "\nWHI MoveItCpp bridge VERSION 00.13.1" << std::endl;
-	std::cout << "Copyright © 2023-2025 Wheel Hub Intelligent Co.,Ltd. All rights reserved\n" << std::endl;
+	std::cout << "\nWHI MoveItCpp bridge VERSION 02.13.1" << std::endl;
+	std::cout << "Copyright © 2023-2026 Wheel Hub Intelligent Co.,Ltd. All rights reserved\n" << std::endl;
 
 	/// ros infrastructure
-    const std::string nodeName("whi_moveit_cpp_bridge"); 
-	ros::init(argc, argv, nodeName);
-	auto nodeHandle = std::make_shared<ros::NodeHandle>(nodeName);
+    const std::string nodeName("whi_moveit_cpp_bridge");
+
+	rclcpp::init(argc, argv);
+	auto nodeHandle = std::make_shared<rclcpp::Node>(nodeName);
 
 	/// node logic
 	auto instance = std::make_unique<whi_moveit_cpp_bridge::MoveItCppBridge>(nodeHandle);
@@ -54,19 +56,18 @@ int main(int argc, char** argv)
 		instance = nullptr;
 
 		// all the default sigint handler does is call shutdown()
-		ros::shutdown();
+		rclcpp::shutdown();
 	};
 
 	/// ros spinner
 	// NOTE: We run the ROS loop in a separate thread as external calls such as
 	// service callbacks to load controllers can block the (main) control loop
 #if ASYNC
-	ros::AsyncSpinner spinner(0);
-	spinner.start();
-	ros::waitForShutdown();
+    auto executor = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+    executor->add_node(nodeHandle);
+    executor->spin();  // blocking until shutdown
 #else
-	ros::MultiThreadedSpinner spinner(0);
-	spinner.spin();
+    rclcpp::spin(nodeHandle);
 #endif
 
 	std::cout << nodeName << " exited" << std::endl;
