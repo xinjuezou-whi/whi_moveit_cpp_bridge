@@ -1,34 +1,41 @@
 planning_scene_monitor_options:
-  ros__parameters:
-    name: planning_scene_monitor
-    robot_description: robot_description
-    joint_state_topic: whi_arm_interface/joint_states #joint_states
-    attached_collision_object_topic: planning_scene_monitor
-    publish_planning_scene_topic: publish_planning_scene
-    monitored_planning_scene_topic: monitored_planning_scene
-    wait_for_initial_state_timeout: 10.0
+  name: planning_scene_monitor
+  robot_description: robot_description
+  joint_state_topic: joint_states
+  attached_collision_object_topic: moveit_cpp/planning_scene_monitor
+  publish_planning_scene_topic: moveit_cpp/publish_planning_scene
+  monitored_planning_scene_topic: moveit_cpp/monitored_planning_scene
+  wait_for_initial_state_timeout: 10.0
 
 planning_pipelines:
-  ros__parameters:
-    pipeline_names:
-      - ompl
+  pipeline_names: ["ompl"]
+  ompl:
+    planning_plugin: ompl_interface/OMPLPlanner
+    planning_plugins:
+      - ompl_interface/OMPLPlanner
+    # To optionally use Ruckig for jerk-limited smoothing, add this line to the request adapters below
+    # default_planning_request_adapters/AddRuckigTrajectorySmoothing
+    request_adapters:
+      - default_planning_request_adapters/ResolveConstraintFrames
+      - default_planning_request_adapters/ValidateWorkspaceBounds
+      - default_planning_request_adapters/CheckStartStateBounds
+      - default_planning_request_adapters/CheckStartStateCollision
+    response_adapters:
+      - default_planning_response_adapters/AddTimeOptimalParameterization
+      - default_planning_response_adapters/ValidateSolution
+      - default_planning_response_adapters/DisplayMotionPath
+    planner_configs:
+      PRMstarkConfigDefault:
+        type: geometric::PRMstar
+    # Define planner(s) for each move_group
+    ur_manipulator:
+      planner_configs:
+        - PRMstarkConfigDefault
 
 plan_request_params:
-  ros__parameters:
-    planning_attempts: 1
-    planning_pipeline: ompl
-    max_velocity_scaling_factor: 1.0
-    max_acceleration_scaling_factor: 1.0
-
-# node params
-whi_moveit_cpp_bridge:
-  ros__parameters:
-    arm_ready_service: whi_arm_interface/arm_ready #whi_ur_robot_driver_bridge/arm_ready
-    estop_topic: estop
-    motion_state_topic: NaviBOT/motion_state
-    wait_duration: 1.0 # second
-    max_try_count: 30
-    cartesian_fraction: 0.95
-    cartesian_traj_max_step: 0.1
-    cartesian_precision: [0.005, 0.01]
-    init_pose_groups: {"fold_inspection": 0.5}
+  planning_attempts: 1
+  planning_pipeline: ompl
+  planning_time: 2.0
+  planner_id: RRTConnectkConfigDefault
+  max_velocity_scaling_factor: 1.0
+  max_acceleration_scaling_factor: 1.0

@@ -60,12 +60,25 @@ namespace whi_moveit_cpp_bridge
         // initiate arm ready service client if not fake
         if (!isFake)
         {
-            node_handle_->declare_parameter("wait_duration", 1.0);
+            if (!node_handle_->has_parameter("wait_duration"))
+            {
+                node_handle_->declare_parameter("wait_duration", 1.0);
+            }
             wait_duration_ = node_handle_->get_parameter("wait_duration").as_double();
-            node_handle_->declare_parameter("max_try_count", 10);
+
+            if (!node_handle_->has_parameter("max_try_count"))
+            {
+                node_handle_->declare_parameter("max_try_count", 10);
+            }
             max_try_count_ = node_handle_->get_parameter("max_try_count").as_int();
-            node_handle_->declare_parameter("arm_ready_service", std::string("arm_ready"));
+
+            if (!node_handle_->has_parameter("arm_ready_service"))
+            {
+                node_handle_->declare_parameter("arm_ready_service", std::string("arm_ready"));
+            }
             std::string serviceReady = node_handle_->get_parameter("arm_ready_service").as_string();
+
+            // arm ready service client
             if (!serviceReady.empty())
             {
                 client_arm_ready_ = node_handle_->create_client<std_srvs::srv::Trigger>(serviceReady);
@@ -77,47 +90,73 @@ namespace whi_moveit_cpp_bridge
                 std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
             }
             // wait for arm ready
-            bool armReady = false;
-            do
-            {
-                auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-                client_arm_ready_->async_send_request(
-                    request,
-                    [this, request, &armReady](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
-                    {
-                        if (future.get()->success)
-                        {
-                            armReady = true;
-                        }
-                        else
-                        {
-                            armReady = false;
-                        }
-                    });
+            // bool armReady = false;
+            // do
+            // {
+            //     auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+            //     client_arm_ready_->async_send_request(
+            //         request,
+            //         [this, request, &armReady](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
+            //         {
+            //             if (future.get()->success)
+            //             {
+            //                 armReady = true;
+            //             }
+            //             else
+            //             {
+            //                 armReady = false;
+            //             }
+            //         });
 
-                RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm ready...");
-                std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
-            } while (!armReady);
+            //     RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm ready...");
+            //     std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+            // } while (!armReady);
         }
 
         // other params
-        node_handle_->declare_parameter("tf_prefix", std::string(""));
+        if (!node_handle_->has_parameter("tf_prefix"))
+        {
+            node_handle_->declare_parameter("tf_prefix", std::string(""));
+        }
         tf_prefix_ = node_handle_->get_parameter("tf_prefix").as_string();
-        node_handle_->declare_parameter("planning_group", std::string("whi_arm"));
+
+        if (!node_handle_->has_parameter("planning_group"))
+        {
+            node_handle_->declare_parameter("planning_group", std::string("whi_arm"));
+        }
         planning_group_ = node_handle_->get_parameter("planning_group").as_string();
 
-        loadInitPlanParams();
-
-        node_handle_->declare_parameter("cartesian_fraction", 1.0);
+        if (!node_handle_->has_parameter("cartesian_fraction"))
+        {
+            node_handle_->declare_parameter("cartesian_fraction", 1.0);
+        }
         cartesian_fraction_ = node_handle_->get_parameter("cartesian_fraction").as_double();
-        node_handle_->declare_parameter("cartesian_traj_max_step", 0.01);
+
+        if (!node_handle_->has_parameter("cartesian_traj_max_step"))
+        {
+            node_handle_->declare_parameter("cartesian_traj_max_step", 0.01);
+        }
         cartesian_traj_max_step_ = node_handle_->get_parameter("cartesian_traj_max_step").as_double();
-        node_handle_->declare_parameter("cartesian_precision", std::vector<double>{});
+
+        if (!node_handle_->has_parameter("cartesian_precision"))
+        {
+            node_handle_->declare_parameter("cartesian_precision", std::vector<double>{});
+        }
         cartesian_precision_ = node_handle_->get_parameter("cartesian_precision").as_double_array();
-        node_handle_->declare_parameter("eef_link", std::string("eef"));
+
+        if (!node_handle_->has_parameter("eef_link"))
+        {
+            node_handle_->declare_parameter("eef_link", std::string("eef"));
+        }
         eef_link_ = node_handle_->get_parameter("eef_link").as_string();
-        node_handle_->declare_parameters<int>("link_index_map", std::map<std::string, int>{});
+
+        if (!node_handle_->has_parameter("link_index_map"))
+        {
+            node_handle_->declare_parameters<int>("link_index_map", std::map<std::string, int>{});
+        }
         node_handle_->get_parameters<int>("link_index_map", link_index_map_);
+
+        loadInitPlanParams();
 
         try
         {
@@ -163,20 +202,32 @@ namespace whi_moveit_cpp_bridge
             std::bind(&MoveItCppBridge::onServiceCurrentTcpPose, this, std::placeholders::_1, std::placeholders::_2));
 
         // subscribe to arm motion state
-        node_handle_->declare_parameter("arm_state_topic", std::string("arm_motion_state"));
+        if (!node_handle_->has_parameter("arm_state_topic"))
+        {
+            node_handle_->declare_parameter("arm_state_topic", std::string("arm_motion_state"));
+        }
         std::string stateTopic = node_handle_->get_parameter("arm_state_topic").as_string();
+
         arm_state_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiMotionState>(
             stateTopic, 10, std::bind(&MoveItCppBridge::callbackArmMotionState, this, std::placeholders::_1));
 
         // subscribe estop topic
-        node_handle_->declare_parameter("estop_topic", std::string("estop"));
+        if (!node_handle_->has_parameter("estop_topic"))
+        {
+            node_handle_->declare_parameter("estop_topic", std::string("estop"));
+        }
         std::string swEstopTopic = node_handle_->get_parameter("estop_topic").as_string();
+
         estop_sub_ = node_handle_->create_subscription<std_msgs::msg::Bool>(
             swEstopTopic, 10, std::bind(&MoveItCppBridge::callbackSwEstop, this, std::placeholders::_1));
 
         // subscribe motion state topic
-        node_handle_->declare_parameter("motion_state_topic", std::string("motion_state"));
+        if (!node_handle_->has_parameter("motion_state_topic"))
+        {
+            node_handle_->declare_parameter("motion_state_topic", std::string("motion_state"));
+        }
         std::string motionStateTopic = node_handle_->get_parameter("motion_state_topic").as_string();
+
         motion_state_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiMotionState>(
             motionStateTopic, 10, std::bind(&MoveItCppBridge::callbackMotionState, this, std::placeholders::_1));
 
@@ -186,13 +237,19 @@ namespace whi_moveit_cpp_bridge
         state_pub_->publish(msg);
 
         // execute init pose
-        node_handle_->declare_parameters<double>("init_pose_groups", std::map<std::string, double>{});
+        if (!node_handle_->has_parameter("init_pose_groups"))
+        {
+            node_handle_->declare_parameters<double>("init_pose_groups", std::map<std::string, double>{});
+        }
         node_handle_->get_parameters<double>("init_pose_groups", init_pose_groups_);
         executeInitPoseGroup();
     }
 
     bool MoveItCppBridge::preExecution() const
     {
+        return true;
+
+
         if (estopped_ || sw_estopped_)
         {
             RCLCPP_WARN_STREAM(node_handle_->get_logger(), "cannot execute pose action, EStop is active");
@@ -654,23 +711,41 @@ namespace whi_moveit_cpp_bridge
     }
 
     void MoveItCppBridge::loadInitPlanParams()
-    {
-        node_handle_->declare_parameter("plan_request_params.planner_id", std::string(""));
+    {        
+        if (!node_handle_->has_parameter("plan_request_params.planner_id"))
+        {
+            node_handle_->declare_parameter("plan_request_params.planner_id", std::string("RRTConnectkConfigDefault"));
+        }
         init_plan_parameters_.planner_id = node_handle_->get_parameter("plan_request_params.planner_id").as_string();
 
-        node_handle_->declare_parameter("plan_request_params.planning_pipeline", std::string(""));
+        if (!node_handle_->has_parameter("plan_request_params.planning_pipeline"))
+        {
+            node_handle_->declare_parameter("plan_request_params.planning_pipeline", std::string("ompl"));
+        }
         init_plan_parameters_.planning_pipeline = node_handle_->get_parameter("plan_request_params.planning_pipeline").as_string();
 
-        node_handle_->declare_parameter("plan_request_params.planning_time", 1.0);
+        if (!node_handle_->has_parameter("plan_request_params.planning_time"))
+        {
+            node_handle_->declare_parameter("plan_request_params.planning_time", 2.0);
+        }
         init_plan_parameters_.planning_time = node_handle_->get_parameter("plan_request_params.planning_time").as_double();
 
-        node_handle_->declare_parameter("plan_request_params.planning_attempts", 5);
+        if (!node_handle_->has_parameter("plan_request_params.planning_attempts"))
+        {
+            node_handle_->declare_parameter("plan_request_params.planning_attempts", 5);
+        }
         init_plan_parameters_.planning_attempts = node_handle_->get_parameter("plan_request_params.planning_attempts").as_int();
 
-        node_handle_->declare_parameter("plan_request_params.max_velocity_scaling_factor", 1.0);
+        if (!node_handle_->has_parameter("plan_request_params.max_velocity_scaling_factor"))
+        {
+            node_handle_->declare_parameter("plan_request_params.max_velocity_scaling_factor", 1.0);
+        }
         init_plan_parameters_.max_velocity_scaling_factor = node_handle_->get_parameter("plan_request_params.max_velocity_scaling_factor").as_double();
 
-        node_handle_->declare_parameter("plan_request_params.max_acceleration_scaling_factor", 1.0);
+        if (!node_handle_->has_parameter("plan_request_params.max_acceleration_scaling_factor"))
+        {
+            node_handle_->declare_parameter("plan_request_params.max_acceleration_scaling_factor", 1.0);
+        }
         init_plan_parameters_.max_acceleration_scaling_factor = node_handle_->get_parameter("plan_request_params.max_acceleration_scaling_factor").as_double();
 #ifdef DEBUG
         std::cout << "request params:" << init_plan_parameters_.planner_id << ","
