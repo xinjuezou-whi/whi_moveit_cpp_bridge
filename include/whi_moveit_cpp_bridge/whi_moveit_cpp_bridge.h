@@ -45,6 +45,9 @@ namespace whi_moveit_cpp_bridge
         MoveItCppBridge(std::shared_ptr<rclcpp::Node>& NodeHandle);
         ~MoveItCppBridge();
 
+    public:
+        void initMoveitCpp();
+
     protected:
         void init();
         bool preExecution() const;
@@ -99,7 +102,6 @@ namespace whi_moveit_cpp_bridge
         double cartesian_fraction_{ 1.0 };
         double cartesian_traj_max_step_{ 0.01 };
         std::vector<double> cartesian_precision_{ 0.01, 0.01 };
-        std::string eef_link_{ "eef" };
         bool estopped_{ false };
         bool sw_estopped_{ false };
         std::atomic_bool executing_{ false };

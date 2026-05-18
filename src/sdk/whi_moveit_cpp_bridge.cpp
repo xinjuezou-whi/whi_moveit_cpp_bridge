@@ -41,7 +41,7 @@ namespace whi_moveit_cpp_bridge
         executeInitPoseGroup();
     }
 
-    void MoveItCppBridge::init()
+    void MoveItCppBridge::initMoveitCpp()
     {
         // check if controller is fake
         bool isFake = false;
@@ -55,7 +55,6 @@ namespace whi_moveit_cpp_bridge
         //         break;
         //     }
         // }
-        state_pub_ = node_handle_->create_publisher<std_msgs::msg::Bool>("moveit_cpp_state", 10);
 
         // initiate arm ready service client if not fake
         if (!isFake)
@@ -77,12 +76,12 @@ namespace whi_moveit_cpp_bridge
                 node_handle_->declare_parameter("arm_ready_service", std::string("arm_ready"));
             }
             std::string serviceReady = node_handle_->get_parameter("arm_ready_service").as_string();
-
             // arm ready service client
             if (!serviceReady.empty())
             {
                 client_arm_ready_ = node_handle_->create_client<std_srvs::srv::Trigger>(serviceReady);
             }
+
             // wait for service active
             while (!client_arm_ready_->wait_for_service(std::chrono::duration<double>(wait_duration_)))
             {
@@ -90,73 +89,28 @@ namespace whi_moveit_cpp_bridge
                 std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
             }
             // wait for arm ready
-            // bool armReady = false;
-            // do
-            // {
-            //     auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-            //     client_arm_ready_->async_send_request(
-            //         request,
-            //         [this, request, &armReady](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
-            //         {
-            //             if (future.get()->success)
-            //             {
-            //                 armReady = true;
-            //             }
-            //             else
-            //             {
-            //                 armReady = false;
-            //             }
-            //         });
+            bool armReady = false;
+            do
+            {
+                auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+                client_arm_ready_->async_send_request(
+                    request,
+                    [this, request, &armReady](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
+                    {
+                        if (future.get()->success)
+                        {
+                            armReady = true;
+                        }
+                        else
+                        {
+                            armReady = false;
+                        }
+                    });
 
-            //     RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm ready...");
-            //     std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
-            // } while (!armReady);
+                RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm ready...");
+                std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+            } while (!armReady);
         }
-
-        // other params
-        if (!node_handle_->has_parameter("tf_prefix"))
-        {
-            node_handle_->declare_parameter("tf_prefix", std::string(""));
-        }
-        tf_prefix_ = node_handle_->get_parameter("tf_prefix").as_string();
-
-        if (!node_handle_->has_parameter("planning_group"))
-        {
-            node_handle_->declare_parameter("planning_group", std::string("whi_arm"));
-        }
-        planning_group_ = node_handle_->get_parameter("planning_group").as_string();
-
-        if (!node_handle_->has_parameter("cartesian_fraction"))
-        {
-            node_handle_->declare_parameter("cartesian_fraction", 1.0);
-        }
-        cartesian_fraction_ = node_handle_->get_parameter("cartesian_fraction").as_double();
-
-        if (!node_handle_->has_parameter("cartesian_traj_max_step"))
-        {
-            node_handle_->declare_parameter("cartesian_traj_max_step", 0.01);
-        }
-        cartesian_traj_max_step_ = node_handle_->get_parameter("cartesian_traj_max_step").as_double();
-
-        if (!node_handle_->has_parameter("cartesian_precision"))
-        {
-            node_handle_->declare_parameter("cartesian_precision", std::vector<double>{});
-        }
-        cartesian_precision_ = node_handle_->get_parameter("cartesian_precision").as_double_array();
-
-        if (!node_handle_->has_parameter("eef_link"))
-        {
-            node_handle_->declare_parameter("eef_link", std::string("eef"));
-        }
-        eef_link_ = node_handle_->get_parameter("eef_link").as_string();
-
-        if (!node_handle_->has_parameter("link_index_map"))
-        {
-            node_handle_->declare_parameters<int>("link_index_map", std::map<std::string, int>{});
-        }
-        node_handle_->get_parameters<int>("link_index_map", link_index_map_);
-
-        loadInitPlanParams();
 
         try
         {
@@ -201,13 +155,69 @@ namespace whi_moveit_cpp_bridge
         current_tcp_pose_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvCurrentTcpPose>("tcp_current",
             std::bind(&MoveItCppBridge::onServiceCurrentTcpPose, this, std::placeholders::_1, std::placeholders::_2));
 
+        // execute init pose
+        executeInitPoseGroup();
+
+        state_pub_ = node_handle_->create_publisher<std_msgs::msg::Bool>("moveit_cpp_state", 10);
+        // publish state for notifying nodes that depend on me
+        std_msgs::msg::Bool msg;
+        msg.data = true;
+        state_pub_->publish(msg);
+    }
+
+    void MoveItCppBridge::init()
+    {
+        // other params
+        if (!node_handle_->has_parameter("tf_prefix"))
+        {
+            node_handle_->declare_parameter("tf_prefix", std::string(""));
+        }
+        tf_prefix_ = node_handle_->get_parameter("tf_prefix").as_string();
+
+        if (!node_handle_->has_parameter("planning_group"))
+        {
+            node_handle_->declare_parameter("planning_group", std::string("whi_arm"));
+        }
+        planning_group_ = node_handle_->get_parameter("planning_group").as_string();
+
+        if (!node_handle_->has_parameter("cartesian_fraction"))
+        {
+            node_handle_->declare_parameter("cartesian_fraction", 1.0);
+        }
+        cartesian_fraction_ = node_handle_->get_parameter("cartesian_fraction").as_double();
+
+        if (!node_handle_->has_parameter("cartesian_traj_max_step"))
+        {
+            node_handle_->declare_parameter("cartesian_traj_max_step", 0.01);
+        }
+        cartesian_traj_max_step_ = node_handle_->get_parameter("cartesian_traj_max_step").as_double();
+
+        if (!node_handle_->has_parameter("cartesian_precision"))
+        {
+            node_handle_->declare_parameter("cartesian_precision", std::vector<double>{});
+        }
+        cartesian_precision_ = node_handle_->get_parameter("cartesian_precision").as_double_array();
+
+        if (!node_handle_->has_parameter("link_index_map"))
+        {
+            node_handle_->declare_parameters<int>("link_index_map", std::map<std::string, int>{});
+        }
+        node_handle_->get_parameters<int>("link_index_map", link_index_map_);
+
+        if (!node_handle_->has_parameter("init_pose_groups"))
+        {
+            node_handle_->declare_parameters<double>("init_pose_groups", std::map<std::string, double>{});
+        }
+        node_handle_->get_parameters<double>("init_pose_groups", init_pose_groups_);
+
+        loadInitPlanParams();
+
         // subscribe to arm motion state
         if (!node_handle_->has_parameter("arm_state_topic"))
         {
             node_handle_->declare_parameter("arm_state_topic", std::string("arm_motion_state"));
         }
         std::string stateTopic = node_handle_->get_parameter("arm_state_topic").as_string();
-
         arm_state_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiMotionState>(
             stateTopic, 10, std::bind(&MoveItCppBridge::callbackArmMotionState, this, std::placeholders::_1));
 
@@ -227,28 +237,13 @@ namespace whi_moveit_cpp_bridge
             node_handle_->declare_parameter("motion_state_topic", std::string("motion_state"));
         }
         std::string motionStateTopic = node_handle_->get_parameter("motion_state_topic").as_string();
-
         motion_state_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiMotionState>(
             motionStateTopic, 10, std::bind(&MoveItCppBridge::callbackMotionState, this, std::placeholders::_1));
-
-        // publish state for notifying nodes that depend on me
-        std_msgs::msg::Bool msg;
-        msg.data = true;
-        state_pub_->publish(msg);
-
-        // execute init pose
-        if (!node_handle_->has_parameter("init_pose_groups"))
-        {
-            node_handle_->declare_parameters<double>("init_pose_groups", std::map<std::string, double>{});
-        }
-        node_handle_->get_parameters<double>("init_pose_groups", init_pose_groups_);
-        executeInitPoseGroup();
     }
 
     bool MoveItCppBridge::preExecution() const
     {
         return true;
-
 
         if (estopped_ || sw_estopped_)
         {
@@ -336,7 +331,7 @@ namespace whi_moveit_cpp_bridge
                 tf2::fromMsg(targetPose.pose, target);
 
                 // compute the Cartesian path
-                const moveit::core::LinkModel* linkModel = joint_model_group_->getLinkModel(eef_link_);
+                const moveit::core::LinkModel* linkModel = joint_model_group_->getLinkModel(Pose.tcp_pose.header.frame_id);
                 if (linkModel != nullptr)
                 {
                     std::vector<moveit::core::RobotStatePtr> trajState;
@@ -393,7 +388,7 @@ namespace whi_moveit_cpp_bridge
                 }
                 else
                 {
-                    RCLCPP_WARN_STREAM(node_handle_->get_logger(), "link " << eef_link_ << " doesn't exit, please check the config!");
+                    RCLCPP_WARN_STREAM(node_handle_->get_logger(), "link " << Pose.tcp_pose.header.frame_id << " doesn't exit, please check the config!");
                     return false;
                 }
             }
@@ -610,14 +605,28 @@ namespace whi_moveit_cpp_bridge
     void MoveItCppBridge::onServiceTcpDifference(const std::shared_ptr<whi_interfaces::srv::WhiSrvTcpDifference::Request> Request,
         std::shared_ptr<whi_interfaces::srv::WhiSrvTcpDifference::Response> Response)
     {
+        std::string frameId;
+        if (!Request->pose_group.pose_group.empty())
+        {
+            frameId = Request->pose_group.header.frame_id;
+        }
+        else if (!Request->joint_pose.position.empty())
+        {
+            frameId = Request->joint_pose.header.frame_id;
+        }
+        else
+        {
+            frameId = Request->tcp_pose.header.frame_id;
+        }
+
         auto state = moveit_cpp_->getCurrentState();
-        geometry_msgs::msg::Pose currentTcpPose = tf2::toMsg(state->getGlobalLinkTransform(eef_link_));
+        geometry_msgs::msg::Pose currentTcpPose = tf2::toMsg(state->getGlobalLinkTransform(frameId));
         tf2::Quaternion currentQ(currentTcpPose.orientation.x, currentTcpPose.orientation.y,
             currentTcpPose.orientation.z, currentTcpPose.orientation.w);
 
-        if (!Request->pose_group.empty())
+        if (!Request->pose_group.pose_group.empty())
         {
-            auto jointValues = planning_components_->getNamedTargetStateValues(Request->pose_group);
+            auto jointValues = planning_components_->getNamedTargetStateValues(Request->pose_group.pose_group);
             if (!jointValues.empty())
             {
                 std::vector<double> jointPositions;
@@ -642,7 +651,7 @@ namespace whi_moveit_cpp_bridge
                 state->setJointGroupPositions(joint_model_group_, jointPositions);
 
                 // forward kinematics
-                auto transform = state->getGlobalLinkTransform(eef_link_);
+                auto transform = state->getGlobalLinkTransform(frameId);
                 auto reference = tf2::toMsg(transform);
                 tf2::Quaternion referenceQ(reference.orientation.x, reference.orientation.y,
                     reference.orientation.z, reference.orientation.w);
@@ -663,7 +672,7 @@ namespace whi_moveit_cpp_bridge
             state->setJointGroupPositions(joint_model_group_, Request->joint_pose.position);
 
             // forward kinematics
-            auto transform = state->getGlobalLinkTransform(eef_link_);
+            auto transform = state->getGlobalLinkTransform(frameId);
             auto reference = tf2::toMsg(transform);
             tf2::Quaternion referenceQ(reference.orientation.x, reference.orientation.y,
                 reference.orientation.z, reference.orientation.w);
@@ -691,7 +700,7 @@ namespace whi_moveit_cpp_bridge
         std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentTcpPose::Response> Response)
     {
         auto state = moveit_cpp_->getCurrentState();
-        Response->pose = tf2::toMsg(state->getGlobalLinkTransform(eef_link_));
+        Response->pose = tf2::toMsg(state->getGlobalLinkTransform(Request->header.frame_id));
         Response->result = true;
     }
 

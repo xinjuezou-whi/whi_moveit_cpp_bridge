@@ -47,13 +47,16 @@ To stop the current executing trajectory
 
 Like Published topic use the rosservice command line to make a quick validation:
 ```
-rosservice call /whi_moveit_cpp_bridge/tcp_pose "{pose: {pose_group: 'up', velocity_scale: 0.05}}"
-
+ros2 service call /tcp_pose whi_interfaces/srv/WhiSrvTcpPose "{pose: {pose_group: 'up', velocity_scale: 0.05}}"
 ```
 
 and the following for pose:
 ```
-rosservice call /whi_moveit_cpp_bridge/tcp_pose "{pose: {tcp_pose: {header: {frame_id: 'camera'}, pose:{position: {x: 0.0, y: 0.1, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}, velocity_scale: 0.05}}"
+ros2 service call /tcp_pose whi_interfaces/srv/WhiSrvTcpPose "{pose: {tcp_pose: {header: {frame_id: 'tool0'}, pose:{position: {x: 0.0, y: 0.05, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}, velocity_scale: 0.05}}"
+```
+Or with Cartesian:
+```
+ros2 service call /tcp_pose whi_interfaces/srv/WhiSrvTcpPose "{pose: {tcp_pose: {header: {frame_id: 'tool0'}, pose:{position: {x: 0.0, y: 0.05, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}, velocity_scale: 0.05, is_cartesian: true}}"
 ```
 
 > NOTE: please replace the pose_group and the position/orientation with your configured ones respectively
@@ -65,18 +68,18 @@ rosservice call /whi_moveit_cpp_bridge/tcp_pose "{pose: {tcp_pose: {header: {fra
 
 An example of the absolute positions for the joint group:
 ```
-rosservice call /whi_moveit_cpp_bridge/joint_pose "{pose: {joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: false}}"
+ros2 service call /joint_pose whi_interfaces/srv/WhiSrvJointPose "{pose: {joint_pose: {position: [0, 0, 0, 0, 0, 0.7854]}, velocity_scale: 0.05, is_relative: false}}"
 ```
 Or with the relative positions:
 ```
-rosservice call /whi_moveit_cpp_bridge/joint_pose "{pose: {joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: true}}"
+ros2 service call /joint_pose whi_interfaces/srv/WhiSrvJointPose "{pose: {joint_pose: {position: [0, 0, 0, 0, 0, 0.7854]}, velocity_scale: 0.05, is_relative: true}}"
 ```
 
 **joint_names**(whi_interfaces::WhiJointNames)
 
 Use this service to check the sequence of each joint in the joint group, if it is uncertain:
 ```
-rosservice call /whi_moveit_cpp_bridge/joint_names
+ros2 service call /joint_names whi_interfaces/srv/WhiSrvJointNames
 ```
 ![image](https://github.com/user-attachments/assets/6c5ff956-2900-4b1c-b630-b2bfb019c666)
 

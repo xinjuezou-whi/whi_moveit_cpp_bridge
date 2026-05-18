@@ -36,7 +36,7 @@ void signalHandler(int Signal)
 int main(int argc, char** argv)
 {
 	/// node version and copyright announcement
-	std::cout << "\nWHI MoveItCpp bridge VERSION 02.13.2" << std::endl;
+	std::cout << "\nWHI MoveItCpp bridge VERSION 02.13.3" << std::endl;
 	std::cout << "Copyright © 2023-2026 Wheel Hub Intelligent Co.,Ltd. All rights reserved\n" << std::endl;
 
 	/// ros infrastructure
@@ -67,10 +67,23 @@ int main(int argc, char** argv)
 #if ASYNC
     auto executor = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
     executor->add_node(nodeHandle);
-    executor->spin();  // blocking until shutdown
+	std::thread spinThread([&]()
+	{
+		executor->spin();
+	});
 #else
-    rclcpp::spin(nodeHandle);
+	std::thread spinThread([&]()
+	{
+		rclcpp::spin(nodeHandle);
+	});
 #endif
+
+	// give time for subscriptions start
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	instance->initMoveitCpp();
+
+    // keep main thread alive
+    spinThread.join();
 
 	std::cout << nodeName << " exited" << std::endl;
 
