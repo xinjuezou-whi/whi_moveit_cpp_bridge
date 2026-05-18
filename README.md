@@ -89,24 +89,24 @@ Get the offset of TCP between the current state and a specified reference state.
 
 An example of the difference to the pose group:
 ```
-rosservice call /whi_moveit_cpp_bridge/tcp_difference "{pose_group: 'ready_inspection'}"
+ros2 service call /tcp_difference whi_interfaces/srv/WhiSrvTcpDifference "{pose_group: {header: {frame_id: 'tool0'}, pose_group: 'ready_inspection'}"
 ```
 
 An example of the difference to the joint position:
 ```
-rosservice call /whi_moveit_cpp_bridge/tcp_difference "{joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}}"
+ros2 service call /tcp_difference whi_interfaces/srv/WhiSrvTcpDifference "{joint_pose: {header: {frame_id: 'tool0'}, {position: [0, 0, 0, 0, 0, 1.5707]}}"
 ```
 
 An example of the difference to the TCP pose:
 ```
-rosservice call /whi_moveit_cpp_bridge/tcp_difference "{tcp_pose: {pose:{position: {x: 0.0, y: 0.1, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}"
+ros2 service call /tcp_difference whi_interfaces/srv/WhiSrvTcpDifference "{tcp_pose: {header: {frame_id: 'tool0'}, {pose:{position: {x: 0.0, y: 0.1, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}"
 ```
 
 **tcp_current**(whi_interfaces::WhiSrvCurrentTcpPose)
 
 Use this service to check the current TCP pose:
 ```
-rosservice call /whi_moveit_cpp_bridge/tcp_current
+ros2 service call /tcp_current whi_interfaces/srv/WhiSrvCurrentTcpPose "{header: {frame_id: 'tool0'}}"
 ```
 ![image](https://github.com/user-attachments/assets/a09a0009-149d-488f-bcf6-49b747538733)
 
