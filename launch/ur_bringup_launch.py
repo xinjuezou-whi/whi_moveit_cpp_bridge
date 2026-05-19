@@ -98,9 +98,9 @@ def launch_setup(context, *args, **kwargs):
 
     # RViz
     # rviz_config_file = os.path.join(
-    #     get_package_share_directory("moveit2_tutorials"),
+    #     get_package_share_directory("whi_moveit_cpp_bridge"),
     #     "launch",
-    #     "moveit_cpp_tutorial.rviz",
+    #     "moveit_cpp.rviz",
     # )
     # rviz_node = Node(
     #     package="rviz2",
@@ -122,34 +122,8 @@ def launch_setup(context, *args, **kwargs):
     #     arguments=["--frame-id", "world", "--child-frame-id", "panda_link0"],
     # )
 
-    # Publish TF
-    # robot_state_publisher = Node(
-    #     package="robot_state_publisher",
-    #     executable="robot_state_publisher",
-    #     name="robot_state_publisher",
-    #     output="both",
-    #     parameters=[moveit_config.robot_description],
-    # )
-
-    # ros2_control using FakeSystem as hardware
-    # ros2_controllers_path = os.path.join(
-    #     get_package_share_directory("moveit_resources_panda_moveit_config"),
-    #     "config",
-    #     "ros2_controllers.yaml",
-    # )
-    # ros2_control_node = Node(
-    #     package="controller_manager",
-    #     executable="ros2_control_node",
-    #     parameters=[ros2_controllers_path],
-    #     remappings=[
-    #         ("/controller_manager/robot_description", "/robot_description"),
-    #     ],
-    #     output="both",
-    # )
-
     launch_nodes = [
         # static_tf,
-        # robot_state_publisher,
         # rviz_node,
         moveit_cpp_node,
     ]
