@@ -9,7 +9,7 @@ git clone https://github.com/xinjuezou-whi/whi_interfaces.git
 ```
 
 ## Advertised topic
-**tcp_pose**(whi_interfaces::WhiTcpPose)
+**tcp_pose**(whi_interfaces::msg::WhiTcpPose)
 
 For quick validation, input the following command with the configured pose group:
 ```
@@ -26,7 +26,7 @@ ros2 topic pub -1 /tcp_pose whi_interfaces/msg/WhiTcpPose "{tcp_pose: {header: {
 ![cpp_bridge](https://github.com/xinjuezou-whi/whi_moveit_cpp_bridge/assets/72239958/eea78e20-2895-4d4e-8436-d42a17aef736)
 
 
-**joint_pose**(whi_interfaces::WhiJointPose)
+**joint_pose**(whi_interfaces::msg::WhiJointPose)
 
 An example of the absolute positions for the joint group:
 ```
@@ -38,12 +38,12 @@ ros2 topic pub -1 /joint_pose whi_interfaces/msg/WhiJointPose "{joint_pose: {pos
 ```
 
 ## Subscribed topic
-**estop**(std_msgs::Bool)
+**estop**(std_msgs::msg::Bool)
 
 To stop the current executing trajectory
 
 ## Advertised service
-**tcp_pose**(whi_interfaces::WhiSrvTcpPose)
+**tcp_pose**(whi_interfaces::msg::WhiSrvTcpPose)
 
 Like Published topic use the rosservice command line to make a quick validation:
 ```
@@ -64,7 +64,7 @@ ros2 service call /tcp_pose whi_interfaces/srv/WhiSrvTcpPose "{pose: {tcp_pose: 
 > TIP: use the Matlab online to calculate the quaternion: https://www.mathworks.com/help/nav/ref/eul2quat.html
 
 
-**joint_pose**(whi_interfaces::WhiSrvJointPose)
+**joint_pose**(whi_interfaces::srv::WhiSrvJointPose)
 
 An example of the absolute positions for the joint group:
 ```
@@ -75,7 +75,7 @@ Or with the relative positions:
 ros2 service call /joint_pose whi_interfaces/srv/WhiSrvJointPose "{pose: {joint_pose: {position: [0, 0, 0, 0, 0, 0.7854]}, velocity_scale: 0.05, is_relative: true}}"
 ```
 
-**joint_names**(whi_interfaces::WhiJointNames)
+**joint_names**(whi_interfaces::srv::WhiJointNames)
 
 Use this service to check the sequence of each joint in the joint group, if it is uncertain:
 ```
@@ -83,7 +83,7 @@ ros2 service call /joint_names whi_interfaces/srv/WhiSrvJointNames
 ```
 ![image](https://github.com/user-attachments/assets/6c5ff956-2900-4b1c-b630-b2bfb019c666)
 
-**tcp_difference**(whi_interfaces::WhiSrvTcpDifference)
+**tcp_difference**(whi_interfaces::srv::WhiSrvTcpDifference)
 
 Get the offset of TCP between the current state and a specified reference state. The reference state has three types: 1 pose group, 2 joint position, 3 TCP pose
 
@@ -102,7 +102,7 @@ An example of the difference to the TCP pose:
 ros2 service call /tcp_difference whi_interfaces/srv/WhiSrvTcpDifference "{tcp_pose: {header: {frame_id: 'tool0'}, {pose:{position: {x: 0.0, y: 0.1, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}"
 ```
 
-**tcp_current**(whi_interfaces::WhiSrvCurrentTcpPose)
+**tcp_current**(whi_interfaces::srv::WhiSrvCurrentTcpPose)
 
 Use this service to check the current TCP pose:
 ```
@@ -132,11 +132,16 @@ roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=chin arm_model
 ## Params
 ```
 whi_moveit_cpp_bridge:
-  planning_group: manipulator
-  max_ik_try_count: 30
-  tcp_pose_service: tcp_pose
-  tcp_pose_topic: tcp_pose
-  motion_state_topic: arm_motion_state
+  ros__parameters:
+    arm_ready_service: arm_ready
+    estop_topic: estop
+    motion_state_topic: motion_state
+    wait_duration: 1.0 # second
+    max_try_count: 30
+    cartesian_fraction: 0.95
+    cartesian_traj_max_step: 0.1
+    cartesian_precision: [0.005, 0.01]
+
 ```
 
 The param "motion_state_topic" creates the subscriber to receive the message whether the arm enters the protective stop state.
