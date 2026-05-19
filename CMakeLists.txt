@@ -17,6 +17,7 @@ endif()
 
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(controller_manager_msgs REQUIRED)
 find_package(moveit_core REQUIRED)
 find_package(moveit_ros_perception REQUIRED)
 find_package(moveit_ros_planning REQUIRED)
@@ -43,6 +44,7 @@ add_library(${PROJECT_NAME} ${WHI_SDK_SRC})
 ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   std_msgs
+  controller_manager_msgs
   moveit_core
   moveit_ros_perception
   moveit_ros_planning

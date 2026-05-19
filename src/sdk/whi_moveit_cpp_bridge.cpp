@@ -23,6 +23,7 @@ All text above must be included in any redistribution.
 #include <std_msgs/msg/bool.hpp>
 #include <moveit/trajectory_processing/time_optimal_trajectory_generation.hpp>
 #include <moveit/robot_state/cartesian_interpolator.h> // comment if old moveitcore is required
+#include <controller_manager_msgs/srv/list_hardware_components.hpp>
 
 #include <thread>
 #include <iterator>
@@ -43,22 +44,9 @@ namespace whi_moveit_cpp_bridge
 
     void MoveItCppBridge::initMoveitCpp()
     {
-        // check if controller is fake
-        bool isFake = false;
-        // XmlRpc::XmlRpcValue controllerList;
-        // node_handle_->getParam("controller_list", controllerList);
-        // for (int i = 0; i < controllerList.size(); ++i)
-        // {
-        //     if (static_cast<std::string>(controllerList[i]["name"]).find("fake") != std::string::npos)
-        //     {
-        //         isFake = true;
-        //         break;
-        //     }
-        // }
-
-        // initiate arm ready service client if not fake
-        if (!isFake)
+        if (!isFakeHardware())
         {
+            // initiate arm ready service client if not fake
             if (!node_handle_->has_parameter("wait_duration"))
             {
                 node_handle_->declare_parameter("wait_duration", 1.0);
@@ -172,6 +160,34 @@ namespace whi_moveit_cpp_bridge
         state_pub_->publish(msg);
     }
 
+    bool MoveItCppBridge::isFakeHardware() const
+    {
+        auto hwClient = node_handle_->create_client<controller_manager_msgs::srv::ListHardwareComponents>(
+            "controller_manager/list_hardware_components");
+        auto request = std::make_shared<controller_manager_msgs::srv::ListHardwareComponents::Request>();
+        auto future = hwClient->async_send_request(request);
+        auto response = future.get();
+
+        if (response->component.empty())
+        {
+            return true;
+        }
+        else
+        {
+            if (response->component.front().plugin_name.find("fake") != std::string::npos ||
+                response->component.front().plugin_name.find("mock") != std::string::npos)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
     void MoveItCppBridge::init()
     {
         // other params
@@ -261,28 +277,32 @@ namespace whi_moveit_cpp_bridge
             return false;
         }
 
-        int tryCount = 0;
-        bool armReady = false;
-        do
+        bool armReady = true;
+        if (client_arm_ready_)
         {
-            auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-            client_arm_ready_->async_send_request(
-                request,
-                [this, request, &armReady](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
-                {
-                    if (future.get()->success)
+            armReady = false;
+            int tryCount = 0;
+            do
+            {
+                auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+                client_arm_ready_->async_send_request(
+                    request,
+                    [this, request, &armReady](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
                     {
-                        armReady = true;
-                    }
-                    else
-                    {
-                        armReady = false;
-                    }
-                });
+                        if (future.get()->success)
+                        {
+                            armReady = true;
+                        }
+                        else
+                        {
+                            armReady = false;
+                        }
+                    });
 
-            RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm ready... in " << max_try_count_ << " seconds");
-            std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
-        } while (!armReady && ++tryCount < max_try_count_);
+                RCLCPP_WARN_STREAM(node_handle_->get_logger(), "wait for arm ready... in " << max_try_count_ << " seconds");
+                std::this_thread::sleep_for(std::chrono::milliseconds(int(wait_duration_ * 1000.0)));
+            } while (!armReady && ++tryCount < max_try_count_);
+        }
 
         if (!armReady)
         {

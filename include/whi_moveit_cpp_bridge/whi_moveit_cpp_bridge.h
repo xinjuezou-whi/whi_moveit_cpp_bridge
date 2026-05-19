@@ -49,6 +49,7 @@ namespace whi_moveit_cpp_bridge
         void initMoveitCpp();
 
     protected:
+        bool isFakeHardware() const;
         void init();
         bool preExecution() const;
         bool execute(const whi_interfaces::msg::WhiTcpPose& Pose);
