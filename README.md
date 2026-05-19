@@ -119,18 +119,16 @@ For a quick validation, set the argument "controller" to "fake", for controlling
 # launch ur_robot_driver firstly
 ros2 launch ur_robot_driver ur5e.launch.py robot_ip:=192.168.56.100 use_mock_hardware:=true
 # then launch moveit_cpp_bridge
-
-roslaunch whi_moveit_cpp_bridge launch.py arm:=ur arm_model:=5e
-# Chin CRB7
-roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=chin arm_model:=crb7 controller:=fake
+ros2 launch whi_moveit_cpp_bridge launch.py arm:=ur arm_model:=5e
 ```
 
 ### Real hardware
 ```
-# UR10e
-roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=ur arm_model:=10e controller:=ur10e
-# Chin CRB7
-roslaunch whi_moveit_cpp_bridge whi_moveit_cpp_bridge.launch arm:=chin arm_model:=crb7 controller:=chin_crb7
+# UR5e
+# launch ur_robot_driver firstly
+ros2 launch ur_robot_driver ur5e.launch.py robot_ip:=192.168.56.100
+# then launch moveit_cpp_bridge
+ros2 launch whi_moveit_cpp_bridge launch.py arm:=ur arm_model:=5e
 ```
 
 ## Params
