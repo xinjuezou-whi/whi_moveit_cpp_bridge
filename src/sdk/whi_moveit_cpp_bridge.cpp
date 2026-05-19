@@ -132,16 +132,23 @@ namespace whi_moveit_cpp_bridge
 
         // providing the tcp_pose/joint_pose service
         std::string tcpAction("tcp_pose");
+        async_callback_group_ = node_handle_->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+        rclcpp::ServicesQoS qosProfile;
+        qosProfile.keep_last(10);
         target_tcp_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvTcpPose>(tcpAction,
-            std::bind(&MoveItCppBridge::onServiceTcpPose, this, std::placeholders::_1, std::placeholders::_2));
+            std::bind(&MoveItCppBridge::onServiceTcpPose, this, std::placeholders::_1, std::placeholders::_2),
+            qosProfile, async_callback_group_);
+        rclcpp::SubscriptionOptions subOptions;
+        subOptions.callback_group = async_callback_group_;
         target_tcp_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiTcpPose>(
-            tcpAction, 10, std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1));
+            tcpAction, 10, std::bind(&MoveItCppBridge::callbackTcpPose, this, std::placeholders::_1), subOptions);
 
         std::string jointAction("joint_pose");
         target_joint_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvJointPose>(jointAction,
-            std::bind(&MoveItCppBridge::onServiceJointPose, this, std::placeholders::_1, std::placeholders::_2));
+            std::bind(&MoveItCppBridge::onServiceJointPose, this, std::placeholders::_1, std::placeholders::_2),
+            qosProfile, async_callback_group_);
         target_joint_sub_ = node_handle_->create_subscription<whi_interfaces::msg::WhiJointPose>(
-            jointAction, 10, std::bind(&MoveItCppBridge::callbackJointPose, this, std::placeholders::_1));
+            jointAction, 10, std::bind(&MoveItCppBridge::callbackJointPose, this, std::placeholders::_1), subOptions);
 
         // providing joint model names service
         joint_names_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvJointNames>("joint_names",
@@ -243,8 +250,6 @@ namespace whi_moveit_cpp_bridge
 
     bool MoveItCppBridge::preExecution() const
     {
-        return true;
-
         if (estopped_ || sw_estopped_)
         {
             RCLCPP_WARN_STREAM(node_handle_->get_logger(), "cannot execute pose action, EStop is active");

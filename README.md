@@ -13,14 +13,14 @@ git clone https://github.com/xinjuezou-whi/whi_interfaces.git
 
 For quick validation, input the following command with the configured pose group:
 ```
-rostopic pub -1 /whi_moveit_cpp_bridge/tcp_pose whi_interfaces/WhiTcpPose "{pose_group: 'home'}"
+ros2 topic pub -1 /tcp_pose whi_interfaces/msg/WhiTcpPose "{pose_group: 'up', velocity_scale: 0.05}"
 ```
 
 > NOTE: please replace the pose_group with your configured pose group
 
 Or with an absolute pose in the world:
 ```
-rostopic pub -1 /whi_moveit_cpp_bridge/tcp_pose whi_interfaces/WhiTcpPose "{tcp_pose: {header: {frame_id: ''}, pose:{position: {x: 0.2, y: 0.349, z: 0.9128}, orientation: {x: -0.707107, y: 0.0, z: 0.0, w: 0.707107}}}}"
+ros2 topic pub -1 /tcp_pose whi_interfaces/msg/WhiTcpPose "{tcp_pose: {header: {frame_id: 'tool0'}, pose:{position: {x: 0.2, y: 0.349, z: 0.9128}, orientation: {x: -0.707107, y: 0.0, z: 0.0, w: 0.707107}}}, velocity_scale: 0.05}"
 ```
 
 ![cpp_bridge](https://github.com/xinjuezou-whi/whi_moveit_cpp_bridge/assets/72239958/eea78e20-2895-4d4e-8436-d42a17aef736)
@@ -30,11 +30,11 @@ rostopic pub -1 /whi_moveit_cpp_bridge/tcp_pose whi_interfaces/WhiTcpPose "{tcp_
 
 An example of the absolute positions for the joint group:
 ```
-rostopic pub -1 /whi_moveit_cpp_bridge/joint_pose whi_interfaces/WhiJointPose "{joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: false}"
+ros2 topic pub -1 /joint_pose whi_interfaces/msg/WhiJointPose "{joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: false}"
 ```
 Or with the relative positions:
 ```
-rostopic pub -1 /whi_moveit_cpp_bridge/joint_pose whi_interfaces/WhiJointPose "{joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: true}"
+ros2 topic pub -1 /joint_pose whi_interfaces/msg/WhiJointPose "{joint_pose: {position: [0, 0, 0, 0, 0, 1.5707]}, velocity_scale: 0.05, is_relative: true}"
 ```
 
 ## Subscribed topic

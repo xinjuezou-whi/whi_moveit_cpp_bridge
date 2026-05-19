@@ -107,5 +107,6 @@ namespace whi_moveit_cpp_bridge
         std::atomic_bool executing_{ false };
         std::map<std::string, double> init_pose_groups_;
         std::map<std::string, int> link_index_map_;
+        rclcpp::CallbackGroup::SharedPtr async_callback_group_;
 	};
 } // namespace whi_moveit_cpp_bridge
