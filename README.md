@@ -18,7 +18,7 @@ ros2 topic pub -1 /tcp_pose whi_interfaces/msg/WhiTcpPose "{pose_group: 'up', ve
 
 > NOTE: please replace the pose_group with your configured pose group
 
-Or with an absolute pose in the world:
+Or with an absolute pose of a given frame in the world, bellowing example is the pose of end effector `tool0`:
 ```
 ros2 topic pub -1 /tcp_pose whi_interfaces/msg/WhiTcpPose "{tcp_pose: {header: {frame_id: 'tool0'}, pose:{position: {x: 0.2, y: 0.349, z: 0.9128}, orientation: {x: -0.707107, y: 0.0, z: 0.0, w: 0.707107}}}, velocity_scale: 0.05}"
 ```
