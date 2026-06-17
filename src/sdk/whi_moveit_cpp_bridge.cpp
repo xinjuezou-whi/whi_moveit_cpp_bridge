@@ -150,6 +150,10 @@ namespace whi_moveit_cpp_bridge
         current_tcp_pose_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvCurrentTcpPose>("tcp_current",
             std::bind(&MoveItCppBridge::onServiceCurrentTcpPose, this, std::placeholders::_1, std::placeholders::_2));
 
+        // advertise abort
+        abort_srv_ = node_handle_->create_service<std_srvs::srv::Trigger>("abort_execution",
+            std::bind(&MoveItCppBridge::onServiceAbort, this, std::placeholders::_1, std::placeholders::_2));
+
         // execute init pose
         executeInitPoseGroup();
 
@@ -727,6 +731,13 @@ namespace whi_moveit_cpp_bridge
         auto state = moveit_cpp_->getCurrentState();
         Response->pose = tf2::toMsg(state->getGlobalLinkTransform(Request->header.frame_id));
         Response->result = true;
+    }
+
+    void MoveItCppBridge::onServiceAbort(const std::shared_ptr<std_srvs::srv::Trigger::Request> Request,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> Response)
+    {
+        moveit_cpp_->getTrajectoryExecutionManagerNonConst()->stopExecution();
+        Response->success = true;
     }
 
     bool MoveItCppBridge::trans2TargetFrame(const std::string& DstFrame,
