@@ -110,6 +110,13 @@ ros2 service call /tcp_current whi_interfaces/srv/WhiSrvCurrentTcpPose "{header:
 ```
 ![image](https://github.com/user-attachments/assets/a09a0009-149d-488f-bcf6-49b747538733)
 
+**abort_execution**(std_srvs::srv::Trigger)
+
+To abort the current execution:
+```
+ros2 service call /abort_execution std_srvs/srv/Trigger ""
+```
+
 ## Usage
 For a quick validation, set the argument "controller" to "fake", for controlling a real arm, please refer to the arm's hardware interface for its controller name:
 
