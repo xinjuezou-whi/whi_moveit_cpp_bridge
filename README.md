@@ -110,6 +110,14 @@ ros2 service call /tcp_current whi_interfaces/srv/WhiSrvCurrentTcpPose "{header:
 ```
 ![image](https://github.com/user-attachments/assets/a09a0009-149d-488f-bcf6-49b747538733)
 
+
+**joint_current**(whi_interfaces::srv::WhiSrvCurrentJointPose)
+
+Use this service to check the current TCP pose:
+```
+ros2 service call /joint_current whi_interfaces/srv/WhiSrvCurrentJointPose "{}"
+```
+
 **abort_execution**(std_srvs::srv::Trigger)
 
 To abort the current execution:

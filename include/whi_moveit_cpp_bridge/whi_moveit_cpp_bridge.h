@@ -26,6 +26,7 @@ Changelog:
 #include <whi_interfaces/srv/whi_srv_joint_names.hpp>
 #include <whi_interfaces/srv/whi_srv_tcp_difference.hpp>
 #include <whi_interfaces/srv/whi_srv_current_tcp_pose.hpp>
+#include <whi_interfaces/srv/whi_srv_current_joint_pose.hpp>
 #include <whi_interfaces/msg/whi_motion_state.hpp>
 
 #include <rclcpp/rclcpp.hpp>
@@ -69,6 +70,8 @@ namespace whi_moveit_cpp_bridge
             std::shared_ptr<whi_interfaces::srv::WhiSrvTcpDifference::Response> Response);
         void onServiceCurrentTcpPose(const std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentTcpPose::Request> Request,
             std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentTcpPose::Response> Response);
+        void onServiceCurrentJointPose(const std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentJointPose::Request> Request,
+            std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentJointPose::Response> Response);
         void onServiceAbort(const std::shared_ptr<std_srvs::srv::Trigger::Request> Request,
             std::shared_ptr<std_srvs::srv::Trigger::Response> Response);
         bool trans2TargetFrame(const std::string& DstFrame,
@@ -96,6 +99,7 @@ namespace whi_moveit_cpp_bridge
         rclcpp::Service<whi_interfaces::srv::WhiSrvJointNames>::SharedPtr joint_names_srv_{ nullptr };
         rclcpp::Service<whi_interfaces::srv::WhiSrvTcpDifference>::SharedPtr tcp_difference_srv_{ nullptr };
         rclcpp::Service<whi_interfaces::srv::WhiSrvCurrentTcpPose>::SharedPtr current_tcp_pose_srv_{ nullptr };
+        rclcpp::Service<whi_interfaces::srv::WhiSrvCurrentJointPose>::SharedPtr current_joint_pose_srv_{ nullptr };
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr abort_srv_{ nullptr };
         rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_arm_ready_{ nullptr };
         moveit_cpp::PlanningComponent::PlanRequestParameters init_plan_parameters_;

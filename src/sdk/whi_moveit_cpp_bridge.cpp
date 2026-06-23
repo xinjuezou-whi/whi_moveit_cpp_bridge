@@ -150,6 +150,10 @@ namespace whi_moveit_cpp_bridge
         current_tcp_pose_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvCurrentTcpPose>("tcp_current",
             std::bind(&MoveItCppBridge::onServiceCurrentTcpPose, this, std::placeholders::_1, std::placeholders::_2));
 
+        // advertise current joint pose
+        current_joint_pose_srv_ = node_handle_->create_service<whi_interfaces::srv::WhiSrvCurrentJointPose>("joint_current",
+            std::bind(&MoveItCppBridge::onServiceCurrentJointPose, this, std::placeholders::_1, std::placeholders::_2));
+
         // advertise abort
         abort_srv_ = node_handle_->create_service<std_srvs::srv::Trigger>("abort_execution",
             std::bind(&MoveItCppBridge::onServiceAbort, this, std::placeholders::_1, std::placeholders::_2));
@@ -731,6 +735,22 @@ namespace whi_moveit_cpp_bridge
         auto state = moveit_cpp_->getCurrentState();
         Response->pose = tf2::toMsg(state->getGlobalLinkTransform(Request->header.frame_id));
         Response->result = true;
+    }
+
+    void MoveItCppBridge::onServiceCurrentJointPose(const std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentJointPose::Request> Request,
+        std::shared_ptr<whi_interfaces::srv::WhiSrvCurrentJointPose::Response> Response)
+    {
+        auto startState = moveit_cpp_->getCurrentState();
+        Response->joint_pose.name = joint_model_group_->getJointModelNames();
+        startState->copyJointGroupPositions(joint_model_group_, Response->joint_pose.position);
+        if (!Response->joint_pose.name.empty() && !Response->joint_pose.position.empty())
+        {
+            Response->result = true;
+        }
+        else
+        {
+            Response->result = false;
+        }
     }
 
     void MoveItCppBridge::onServiceAbort(const std::shared_ptr<std_srvs::srv::Trigger::Request> Request,
