@@ -117,12 +117,14 @@ Use this service to check the current TCP pose:
 ```
 ros2 service call /joint_current whi_interfaces/srv/WhiSrvCurrentJointPose "{}"
 ```
+<img width="454" height="154" alt="屏幕截图 2026-06-23 103231" src="https://github.com/user-attachments/assets/d76937b2-d2c0-496d-a229-ba4fb871d3f2" />
+
 
 **abort_execution**(std_srvs::srv::Trigger)
 
 To abort the current execution:
 ```
-ros2 service call /abort_execution std_srvs/srv/Trigger ""
+ros2 service call /abort_execution std_srvs/srv/Trigger "{}"
 ```
 
 ## Usage
