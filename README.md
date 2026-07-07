@@ -154,13 +154,13 @@ whi_moveit_cpp_bridge:
   ros__parameters:
     arm_ready_service: arm_ready
     estop_topic: estop
+    arm_state_topic: arm_motion_state
     motion_state_topic: motion_state
     wait_duration: 1.0 # second
     max_try_count: 30
     cartesian_fraction: 0.95
     cartesian_traj_max_step: 0.1
     cartesian_precision: [0.005, 0.01]
-
 ```
 
 The param "motion_state_topic" creates the subscriber to receive the message whether the arm enters the protective stop state.
