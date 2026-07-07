@@ -2,5 +2,4 @@ whi_moveit_cpp_bridge:
   ros__parameters:
     tf_prefix: ""
     planning_group: jaka_a5
-    arm_state_topic: whi_arm_interface/arm_motion_state
-    init_pose_groups: {"home": 0.1}
+    init_pose_groups: {"up": 0.1}

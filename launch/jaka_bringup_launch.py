@@ -33,9 +33,9 @@ def launch_setup(context, *args, **kwargs):
     moveit_config = (
         MoveItConfigsBuilder(
             robot_name=arm,
-            package_name=f"{arm}_moveit_config"
+            package_name=f"{arm}_{arm_model}_moveit_config"
         )
-        .robot_description_semantic(Path("srdf") / "ur.srdf.xacro", {"name": f"{arm}{arm_model}"})
+        .robot_description_semantic(Path("config") / f"{arm}_{arm_model}.srdf")
         .moveit_cpp(
             file_path=os.path.join(
                 get_package_share_directory("whi_moveit_cpp_bridge"),

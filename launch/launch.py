@@ -22,6 +22,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
+from launch_ros.actions import Node
+from launch.conditions import IfCondition
 
 def launch_setup(context, *args, **kwargs):
     # Input parameters declaration
@@ -42,7 +44,7 @@ def launch_setup(context, *args, **kwargs):
     else:
         raise RuntimeError(f"Unsupported arm: {arm}")
 
-    bringup_cmd = IncludeLaunchDescription(
+    cmd_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(launch_file),
         launch_arguments={
             "namespace": LaunchConfiguration("namespace"),
@@ -51,7 +53,22 @@ def launch_setup(context, *args, **kwargs):
         }.items()
     )
 
-    return [bringup_cmd]
+    # RViz
+    rviz_config_file = PathJoinSubstitution(
+        [FindPackageShare("whi_moveit_cpp_bridge"), "launch", "rviz_config.rviz"]
+    )
+    node_rviz = Node(
+        package="rviz2",
+        executable="rviz2",
+        output="log",
+        arguments=["-d", rviz_config_file],
+        condition=IfCondition(LaunchConfiguration("start_rviz")),
+    )
+
+    return [
+        cmd_bringup,
+        node_rviz,
+    ]
 
 
 def generate_launch_description():
@@ -62,5 +79,7 @@ def generate_launch_description():
             description='Arm brand'),
         DeclareLaunchArgument('arm_model', default_value='5e',
             description='Arm model'),
+        DeclareLaunchArgument("start_rviz", default_value="false",
+            description="start RViz for visualization"),
         OpaqueFunction(function=launch_setup)
     ])

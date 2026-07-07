@@ -2,6 +2,7 @@ whi_moveit_cpp_bridge:
   ros__parameters:
     arm_ready_service: arm_ready
     estop_topic: estop
+    arm_state_topic: arm_motion_state
     motion_state_topic: motion_state
     wait_duration: 1.0 # second
     max_try_count: 30
