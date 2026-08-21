@@ -1,0 +1,8 @@
+whi_moveit_cpp_bridge:
+  ros__parameters:
+    tf_prefix: ""
+    planning_group: left_arm
+    arm_state_topic: openarm_left_hardware_interface_util_arm_state
+    estop_topic: estop
+    motion_state_topic: motion_state
+    init_pose_groups: {"home": 0.1}

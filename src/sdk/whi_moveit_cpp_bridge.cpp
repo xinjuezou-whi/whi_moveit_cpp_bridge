@@ -61,7 +61,7 @@ namespace whi_moveit_cpp_bridge
 
             if (!node_handle_->has_parameter("arm_ready_service"))
             {
-                node_handle_->declare_parameter("arm_ready_service", std::string("arm_ready"));
+                node_handle_->declare_parameter("arm_ready_service", planning_group_ + std::string("_arm_ready"));
             }
             std::string serviceReady = node_handle_->get_parameter("arm_ready_service").as_string();
             // arm ready service client
